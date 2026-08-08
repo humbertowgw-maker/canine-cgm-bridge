@@ -1,0 +1,29 @@
+# Shared veterinary preset parameters loaded by both mobile-bridge and cloud-backend.
+
+calibration_defaults:
+  # Naive bootstrap coefficients assigned to a Dog before any real calibration
+  # points have been submitted. Deliberately not tuned to any real sensor.
+  slope: 1.0
+  intercept: 0.0
+
+calibration_engine:
+  min_points_for_regression: 2
+  min_points_for_trusted_fit: 4
+  max_calibration_window: 12
+
+target_range:
+  low_mg_dl: 80.0
+  high_mg_dl: 180.0
+
+feeding_schedule_default:
+  - "07:00"
+  - "17:00"
+
+analytics:
+  # Rolling lookback window used when computing glucose velocity (mg/dL per minute).
+  velocity_window_minutes: 20
+  # Negative velocity thresholds (dropping glucose). A value below the warning
+  # threshold but above the critical threshold is flagged "warning"; at or below
+  # the critical threshold it is flagged "critical".
+  hypo_drop_warning_mg_dl_per_min: -2.0
+  hypo_drop_critical_mg_dl_per_min: -4.0
