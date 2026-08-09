@@ -62,6 +62,23 @@ def test_get_dog_404_for_missing_dog(client):
     assert resp.status_code == 404
 
 
+def test_list_dogs_returns_all_dogs_in_creation_order(client):
+    assert client.get("/dogs").json() == []
+
+    biscuit = client.post(
+        "/dogs", json={"name": "Biscuit", "breed": "Beagle", "weight_kg": 12.5}
+    ).json()
+    rex = client.post(
+        "/dogs", json={"name": "Rex", "breed": "Labrador", "weight_kg": 30.0}
+    ).json()
+
+    resp = client.get("/dogs")
+    assert resp.status_code == 200
+    names = [d["name"] for d in resp.json()]
+    assert names == ["Biscuit", "Rex"]
+    assert [d["id"] for d in resp.json()] == [biscuit["id"], rex["id"]]
+
+
 def test_readings_404_for_missing_dog(client):
     resp = client.get("/readings/9999")
     assert resp.status_code == 404

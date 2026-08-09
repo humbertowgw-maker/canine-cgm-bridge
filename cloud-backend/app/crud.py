@@ -37,6 +37,11 @@ def get_dog(db: Session, dog_id: int) -> models.Dog | None:
     return db.get(models.Dog, dog_id)
 
 
+def list_dogs(db: Session) -> list[models.Dog]:
+    stmt = select(models.Dog).order_by(models.Dog.id.asc())
+    return list(db.execute(stmt).scalars())
+
+
 def update_dog(db: Session, dog_id: int, dog_update: schemas.DogUpdate) -> models.Dog | None:
     dog = get_dog(db, dog_id)
     if dog is None:

@@ -15,6 +15,11 @@ def create_dog(dog_in: schemas.DogCreate, db: Session = Depends(get_db)):
     return dog
 
 
+@router.get("", response_model=list[schemas.DogOut])
+def list_dogs(db: Session = Depends(get_db)):
+    return crud.list_dogs(db)
+
+
 @router.get("/{dog_id}", response_model=schemas.DogOut)
 def get_dog(dog_id: int, db: Session = Depends(get_db)):
     dog = crud.get_dog(db, dog_id)

@@ -78,6 +78,51 @@
     color: var(--text-primary);
     font-size: 13px;
   }
+  .btn-ghost {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-ghost:disabled { cursor: default; opacity: 0.7; }
+  .btn-ghost:not(:disabled):hover { color: var(--text-primary); }
+
+  .cal-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .cal-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .cal-form input {
+    padding: 7px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--page);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-form button {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    background: var(--series-1);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  #cal-form-status { font-size: 12px; color: var(--text-muted); }
 
   .stat-row {
     display: grid;
@@ -213,8 +258,10 @@
     <h1>Glucose trend <span class="dog-name" id="dog-name"></span></h1>
     <div class="dog-picker">
       <span class="live-dot" id="live-dot"></span>
+      <button id="enable-notifications" type="button" class="btn-ghost">🔔 Enable alerts</button>
       <label for="dog-id-input">Dog ID</label>
-      <input id="dog-id-input" type="number" min="1" value="1" />
+      <input id="dog-id-input" type="number" min="1" value="1" list="dog-datalist" />
+      <datalist id="dog-datalist"></datalist>
     </div>
   </header>
 
@@ -257,6 +304,23 @@
   </section>
 
   <section class="panel">
+    <p class="panel-title">Submit a calibration point</p>
+    <form id="calibration-form" class="cal-form">
+      <label>Reference BG (mg/dL)
+        <input type="number" step="0.1" id="cal-reference" required />
+      </label>
+      <label>Raw sensor value
+        <input type="number" step="0.01" id="cal-raw" required />
+      </label>
+      <label>Timestamp (blank = now)
+        <input type="datetime-local" id="cal-timestamp" />
+      </label>
+      <button type="submit">Submit</button>
+      <span id="cal-form-status"></span>
+    </form>
+  </section>
+
+  <section class="panel">
     <p class="panel-title">Alert history</p>
     <table id="alerts-table">
       <thead><tr><th>Time</th><th>Severity</th><th>Velocity (mg/dL/min)</th></tr></thead>
@@ -279,6 +343,9 @@
   const tooltip = document.getElementById("tooltip");
   const chartWrap = document.getElementById("chart-wrap");
   const dogIdInput = document.getElementById("dog-id-input");
+  const notifyBtn = document.getElementById("enable-notifications");
+  const calForm = document.getElementById("calibration-form");
+  const calStatus = document.getElementById("cal-form-status");
 
   const svgns = "http://www.w3.org/2000/svg";
   function el(tag, attrs) {
@@ -293,6 +360,16 @@
     return res.json();
   }
 
+  async function postJSON(path, body) {
+    const res = await fetch(`${CLOUD_BACKEND_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+    return res.json();
+  }
+
   function formatTime(iso) {
     const d = new Date(iso);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -302,6 +379,71 @@
     if (value < low) return { label: "Low", dot: "dot-critical" };
     if (value > high) return { label: "High", dot: "dot-warning" };
     return { label: "In range", dot: "dot-good" };
+  }
+
+  async function refreshDogList() {
+    try {
+      const dogs = await fetchJSON("/dogs");
+      const datalist = document.getElementById("dog-datalist");
+      datalist.innerHTML = "";
+      dogs.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d.id;
+        opt.label = `${d.name} (${d.breed})`;
+        datalist.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("Failed to load dog list:", err);
+    }
+  }
+
+  function updateNotifyButton() {
+    if (!("Notification" in window)) {
+      notifyBtn.style.display = "none";
+      return;
+    }
+    if (Notification.permission === "granted") {
+      notifyBtn.textContent = "🔔 Alerts on";
+      notifyBtn.disabled = true;
+    } else if (Notification.permission === "denied") {
+      notifyBtn.textContent = "🔕 Alerts blocked";
+      notifyBtn.disabled = true;
+    } else {
+      notifyBtn.textContent = "🔔 Enable alerts";
+      notifyBtn.disabled = false;
+    }
+  }
+  notifyBtn.addEventListener("click", async () => {
+    if ("Notification" in window) {
+      await Notification.requestPermission();
+      updateNotifyButton();
+    }
+  });
+  updateNotifyButton();
+
+  // Highest alert id already surfaced, per dog. null = baseline not yet established
+  // for the current dog (avoids replaying old alerts as fresh notifications on load
+  // or when switching dogs).
+  let lastSeenAlertId = null;
+
+  function maybeNotify(dog, alerts) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (alerts.length === 0) {
+      lastSeenAlertId = lastSeenAlertId ?? 0;
+      return;
+    }
+    const maxId = alerts[0].id; // alerts arrive newest-first
+    if (lastSeenAlertId === null) {
+      lastSeenAlertId = maxId;
+      return;
+    }
+    const newOnes = alerts.filter((a) => a.id > lastSeenAlertId).reverse();
+    newOnes.forEach((a) => {
+      new Notification(`⚠️ ${dog.name}: ${a.severity} glucose drop`, {
+        body: `${a.velocity_mg_dl_per_min.toFixed(2)} mg/dL/min at ${formatTime(a.timestamp)}`,
+      });
+    });
+    lastSeenAlertId = maxId;
   }
 
   function scaleX(t, tMin, tMax) {
@@ -532,18 +674,54 @@
       renderStats(dog, readings, alerts, calibration);
       renderReadingsTable(readings);
       renderAlertsTable(alerts);
+      maybeNotify(dog, alerts);
     } catch (err) {
       console.error("Dashboard refresh failed:", err);
     }
+    refreshDogList();
   }
 
   function startPolling() {
     if (pollTimer) clearInterval(pollTimer);
+    lastSeenAlertId = null; // re-establish baseline for the newly selected dog
     refresh();
     pollTimer = setInterval(refresh, POLL_INTERVAL_MS);
   }
 
   dogIdInput.addEventListener("change", startPolling);
+
+  calForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault();
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) {
+      calStatus.textContent = "Pick a dog first.";
+      return;
+    }
+
+    const reference = parseFloat(document.getElementById("cal-reference").value);
+    const raw = parseFloat(document.getElementById("cal-raw").value);
+    const tsInput = document.getElementById("cal-timestamp").value;
+    const timestamp = tsInput ? new Date(tsInput).toISOString() : new Date().toISOString();
+
+    calStatus.textContent = "Submitting…";
+    try {
+      const coeff = await postJSON(`/dogs/${dogId}/calibration`, {
+        reference_bg_mg_dl: reference,
+        raw_value: raw,
+        timestamp,
+      });
+      calStatus.textContent =
+        `Updated: slope=${coeff.slope.toFixed(3)} intercept=${coeff.intercept.toFixed(2)} (n=${coeff.point_count})`;
+      document.getElementById("stat-calibration").textContent = coeff.is_trusted ? "Trusted" : "Warming up";
+      document.getElementById("stat-calibration-chip").innerHTML =
+        `<span class="dot ${coeff.is_trusted ? "dot-good" : "dot-muted"}"></span>n = ${coeff.point_count}`;
+      calForm.reset();
+    } catch (err) {
+      calStatus.textContent = "Submission failed — check the dog id and values.";
+      console.error("Calibration submit failed:", err);
+    }
+  });
+
   startPolling();
 })();
 </script>
