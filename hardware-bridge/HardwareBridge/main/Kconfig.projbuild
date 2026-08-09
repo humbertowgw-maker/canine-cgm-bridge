@@ -1,0 +1,38 @@
+menu "Canine CGM Hardware Bridge Configuration"
+
+    config CGM_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            WiFi network the bridge connects to reach mobile-bridge.
+
+    config CGM_WIFI_PASSWORD
+        string "WiFi password"
+        default "mypassword"
+        help
+            WPA2 password for CGM_WIFI_SSID.
+
+    config CGM_MOBILE_BRIDGE_URL
+        string "mobile-bridge base URL"
+        default "http://192.168.1.100:9000"
+        help
+            Base URL of the mobile-bridge service (no trailing slash). This
+            firmware POSTs to <this>/telemetry/frame, exactly the same
+            endpoint and schema the Python simulator uses.
+
+    config CGM_DOG_ID
+        int "Dog ID"
+        default 1
+        help
+            The cloud-backend dog_id this collar reports readings for.
+            Single-collar-per-dog for this first prototype.
+
+    config CGM_DEBUG_FRAME_INTERVAL_SECONDS
+        int "Debug fake-frame interval (seconds)"
+        default 30
+        help
+            How often to POST a fake TelemetryFrame while no real Libre/Bubble
+            sensor is wired up yet (Step 2 of the build plan). Once real BLE
+            sensor reads are implemented (Step 3), this debug timer is removed.
+
+endmenu
