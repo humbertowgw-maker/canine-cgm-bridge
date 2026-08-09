@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Canine CGM Bridge — Live Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --series-1:       #2a78d6;
+    --border:         rgba(11, 11, 11, 0.10);
+    --status-good:    #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical:#d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface-1:      #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --series-1:       #3987e5;
+      --border:         rgba(255, 255, 255, 0.10);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+  h1 .dog-name { color: var(--text-secondary); font-weight: 400; }
+  .dog-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .dog-picker input {
+    width: 60px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+  .stat-unit {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .dot-good { background: var(--status-good); }
+  .dot-warning { background: var(--status-warning); }
+  .dot-critical { background: var(--status-critical); }
+  .dot-muted { background: var(--baseline); }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--status-good);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .panel {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+
+  #chart-wrap { position: relative; }
+  #chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .axis-label { fill: var(--text-muted); font-size: 10px; }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .band-label { fill: var(--text-muted); font-size: 10px; }
+  .glucose-line { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; }
+  .glucose-end { fill: var(--series-1); }
+  .crosshair-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .crosshair-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+  .alert-tick { stroke-width: 2; opacity: 0.8; cursor: pointer; }
+  .alert-tick:hover { opacity: 1; }
+  .alert-warning { stroke: var(--status-warning); }
+  .alert-critical { stroke: var(--status-critical); }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: var(--page);
+    font-size: 12px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    line-height: 1.4;
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    opacity: 0;
+    transition: opacity 0.08s ease;
+    z-index: 10;
+  }
+  .tooltip.visible { opacity: 1; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  th { color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; }
+  .empty-note { color: var(--text-muted); font-size: 13px; }
+
+  details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Glucose trend <span class="dog-name" id="dog-name"></span></h1>
+    <div class="dog-picker">
+      <span class="live-dot" id="live-dot"></span>
+      <label for="dog-id-input">Dog ID</label>
+      <input id="dog-id-input" type="number" min="1" value="1" />
+    </div>
+  </header>
+
+  <section class="stat-row">
+    <div class="stat-tile">
+      <div class="stat-label">Latest BG</div>
+      <div class="stat-value" id="stat-bg">—<span class="stat-unit">mg/dL</span></div>
+      <div class="chip" id="stat-bg-chip"></div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Velocity</div>
+      <div class="stat-value" id="stat-velocity">—<span class="stat-unit">mg/dL/min</span></div>
+      <div class="chip" id="stat-velocity-chip"></div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Calibration</div>
+      <div class="stat-value" id="stat-calibration">—</div>
+      <div class="chip" id="stat-calibration-chip"></div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Last updated</div>
+      <div class="stat-value" id="stat-updated" style="font-size:16px;">—</div>
+      <div class="chip" id="stat-updated-chip"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title">Glucose trend</p>
+    <div id="chart-wrap">
+      <svg id="chart" viewBox="0 0 900 320" preserveAspectRatio="none"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+    <details>
+      <summary>View recent readings as a table</summary>
+      <table id="readings-table">
+        <thead><tr><th>Time</th><th>Glucose (mg/dL)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </details>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title">Alert history</p>
+    <table id="alerts-table">
+      <thead><tr><th>Time</th><th>Severity</th><th>Velocity (mg/dL/min)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="empty-note" id="alerts-empty" style="display:none;">No alerts yet.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  const CLOUD_BACKEND_URL = window.location.origin;
+  const POLL_INTERVAL_MS = 3000;
+  const CHART_W = 900, CHART_H = 320;
+  const MARGIN = { top: 20, right: 20, bottom: 30, left: 52 };
+  const plotW = CHART_W - MARGIN.left - MARGIN.right;
+  const plotH = CHART_H - MARGIN.top - MARGIN.bottom;
+
+  const svg = document.getElementById("chart");
+  const tooltip = document.getElementById("tooltip");
+  const chartWrap = document.getElementById("chart-wrap");
+  const dogIdInput = document.getElementById("dog-id-input");
+
+  const svgns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs) {
+    const e = document.createElementNS(svgns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  async function fetchJSON(path) {
+    const res = await fetch(`${CLOUD_BACKEND_URL}${path}`);
+    if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+    return res.json();
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function statusForValue(value, low, high) {
+    if (value < low) return { label: "Low", dot: "dot-critical" };
+    if (value > high) return { label: "High", dot: "dot-warning" };
+    return { label: "In range", dot: "dot-good" };
+  }
+
+  function scaleX(t, tMin, tMax) {
+    if (tMax === tMin) return MARGIN.left;
+    return MARGIN.left + ((t - tMin) / (tMax - tMin)) * plotW;
+  }
+  function scaleY(v, vMin, vMax) {
+    if (vMax === vMin) return MARGIN.top + plotH / 2;
+    return MARGIN.top + plotH - ((v - vMin) / (vMax - vMin)) * plotH;
+  }
+
+  function renderChart(dog, readings, alerts) {
+    svg.innerHTML = "";
+    if (readings.length === 0) {
+      const msg = el("text", {
+        x: CHART_W / 2, y: CHART_H / 2, "text-anchor": "middle",
+        class: "axis-label",
+      });
+      msg.textContent = "Waiting for readings…";
+      svg.appendChild(msg);
+      return;
+    }
+
+    // readings arrive newest-first from the API; chart wants oldest-first
+    const sorted = [...readings].reverse();
+    const times = sorted.map((r) => new Date(r.timestamp).getTime());
+    const values = sorted.map((r) => r.estimated_glucose_mg_dl);
+
+    const tMin = Math.min(...times), tMax = Math.max(...times);
+    const dataMin = Math.min(...values, dog.target_range_low_mg_dl);
+    const dataMax = Math.max(...values, dog.target_range_high_mg_dl);
+    const pad = Math.max(10, (dataMax - dataMin) * 0.1);
+    const vMin = Math.floor((dataMin - pad) / 10) * 10;
+    const vMax = Math.ceil((dataMax + pad) / 10) * 10;
+
+    const x = (t) => scaleX(t, tMin, tMax);
+    const y = (v) => scaleY(v, vMin, vMax);
+
+    // gridlines + y-axis labels (4 ticks)
+    const tickCount = 4;
+    for (let i = 0; i <= tickCount; i++) {
+      const v = vMin + ((vMax - vMin) * i) / tickCount;
+      const gy = y(v);
+      svg.appendChild(el("line", {
+        x1: MARGIN.left, x2: CHART_W - MARGIN.right, y1: gy, y2: gy, class: "gridline",
+      }));
+      const label = el("text", { x: MARGIN.left - 8, y: gy + 3, "text-anchor": "end", class: "axis-label" });
+      label.textContent = Math.round(v);
+      svg.appendChild(label);
+    }
+
+    // x-axis time labels (first, middle, last)
+    [sorted[0], sorted[Math.floor(sorted.length / 2)], sorted[sorted.length - 1]].forEach((r) => {
+      const lx = x(new Date(r.timestamp).getTime());
+      const label = el("text", { x: lx, y: CHART_H - MARGIN.bottom + 16, "text-anchor": "middle", class: "axis-label" });
+      label.textContent = formatTime(r.timestamp);
+      svg.appendChild(label);
+    });
+
+    // target range band (neutral reference, not a data series)
+    const bandTop = y(dog.target_range_high_mg_dl);
+    const bandBottom = y(dog.target_range_low_mg_dl);
+    svg.appendChild(el("rect", {
+      x: MARGIN.left, y: bandTop, width: plotW, height: Math.max(0, bandBottom - bandTop),
+      fill: "var(--status-good)", opacity: "0.08",
+    }));
+    const bandLabel = el("text", { x: MARGIN.left + 6, y: bandTop + 12, class: "band-label" });
+    bandLabel.textContent = `Target range (${dog.target_range_low_mg_dl}–${dog.target_range_high_mg_dl})`;
+    svg.appendChild(bandLabel);
+
+    // glucose line
+    const points = sorted.map((r) => [x(new Date(r.timestamp).getTime()), y(r.estimated_glucose_mg_dl)]);
+    const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+    svg.appendChild(el("path", { d: pathD, class: "glucose-line" }));
+
+    // 4px rounded end marker on the latest point
+    const last = points[points.length - 1];
+    svg.appendChild(el("circle", { cx: last[0], cy: last[1], r: 4, class: "glucose-end" }));
+
+    // alert ticks
+    alerts.forEach((a) => {
+      const at = new Date(a.timestamp).getTime();
+      if (at < tMin || at > tMax) return;
+      const ax = x(at);
+      const tick = el("line", {
+        x1: ax, x2: ax, y1: MARGIN.top, y2: CHART_H - MARGIN.bottom,
+        class: `alert-tick alert-${a.severity === "critical" ? "critical" : "warning"}`,
+      });
+      tick.addEventListener("mouseenter", (evt) => {
+        showTooltip(evt, `${a.severity.toUpperCase()} · ${a.velocity_mg_dl_per_min.toFixed(2)} mg/dL/min<br>${formatTime(a.timestamp)}`);
+      });
+      tick.addEventListener("mouseleave", hideTooltip);
+      svg.appendChild(tick);
+    });
+
+    // crosshair overlay
+    const overlay = el("rect", {
+      x: MARGIN.left, y: MARGIN.top, width: plotW, height: plotH, fill: "transparent",
+    });
+    const crosshairLine = el("line", { class: "crosshair-line", visibility: "hidden" });
+    const crosshairDot = el("circle", { r: 4, class: "crosshair-dot", visibility: "hidden" });
+    svg.appendChild(crosshairLine);
+    svg.appendChild(crosshairDot);
+    svg.appendChild(overlay);
+
+    overlay.addEventListener("mousemove", (evt) => {
+      const rect = svg.getBoundingClientRect();
+      const scaleFactor = CHART_W / rect.width;
+      const mouseX = (evt.clientX - rect.left) * scaleFactor;
+      let nearest = sorted[0];
+      let nearestX = points[0][0];
+      let best = Infinity;
+      points.forEach((p, i) => {
+        const d = Math.abs(p[0] - mouseX);
+        if (d < best) { best = d; nearest = sorted[i]; nearestX = p[0]; }
+      });
+      const ny = y(nearest.estimated_glucose_mg_dl);
+      crosshairLine.setAttribute("x1", nearestX);
+      crosshairLine.setAttribute("x2", nearestX);
+      crosshairLine.setAttribute("y1", MARGIN.top);
+      crosshairLine.setAttribute("y2", CHART_H - MARGIN.bottom);
+      crosshairLine.setAttribute("visibility", "visible");
+      crosshairDot.setAttribute("cx", nearestX);
+      crosshairDot.setAttribute("cy", ny);
+      crosshairDot.setAttribute("visibility", "visible");
+      showTooltip(evt, `${nearest.estimated_glucose_mg_dl.toFixed(1)} mg/dL<br>${formatTime(nearest.timestamp)}`);
+    });
+    overlay.addEventListener("mouseleave", () => {
+      crosshairLine.setAttribute("visibility", "hidden");
+      crosshairDot.setAttribute("visibility", "hidden");
+      hideTooltip();
+    });
+  }
+
+  function showTooltip(evt, html) {
+    const wrapRect = chartWrap.getBoundingClientRect();
+    tooltip.innerHTML = html;
+    tooltip.style.left = `${evt.clientX - wrapRect.left}px`;
+    tooltip.style.top = `${evt.clientY - wrapRect.top - 10}px`;
+    tooltip.classList.add("visible");
+  }
+  function hideTooltip() {
+    tooltip.classList.remove("visible");
+  }
+
+  function renderStats(dog, readings, alerts, calibration) {
+    document.getElementById("dog-name").textContent = dog ? `— ${dog.name}` : "";
+
+    const bgEl = document.getElementById("stat-bg");
+    const bgChip = document.getElementById("stat-bg-chip");
+    if (readings.length > 0 && dog) {
+      const latest = readings[0]; // newest-first
+      bgEl.innerHTML = `${latest.estimated_glucose_mg_dl.toFixed(1)}<span class="stat-unit">mg/dL</span>`;
+      const status = statusForValue(latest.estimated_glucose_mg_dl, dog.target_range_low_mg_dl, dog.target_range_high_mg_dl);
+      bgChip.innerHTML = `<span class="dot ${status.dot}"></span>${status.label}`;
+    } else {
+      bgEl.innerHTML = `—<span class="stat-unit">mg/dL</span>`;
+      bgChip.innerHTML = "";
+    }
+
+    const velEl = document.getElementById("stat-velocity");
+    const velChip = document.getElementById("stat-velocity-chip");
+    if (readings.length >= 2) {
+      const sorted = [...readings].reverse();
+      const a = sorted[sorted.length - 2], b = sorted[sorted.length - 1];
+      const dtMin = (new Date(b.timestamp) - new Date(a.timestamp)) / 60000;
+      const velocity = dtMin > 0 ? (b.estimated_glucose_mg_dl - a.estimated_glucose_mg_dl) / dtMin : 0;
+      const arrow = velocity > 0.2 ? "▲" : velocity < -0.2 ? "▼" : "▶";
+      velEl.innerHTML = `${arrow} ${velocity.toFixed(2)}<span class="stat-unit">mg/dL/min</span>`;
+      const latestAlert = alerts.length > 0 && alerts[0].glucose_reading_id === b.id ? alerts[0] : null;
+      velChip.innerHTML = latestAlert
+        ? `<span class="dot ${latestAlert.severity === "critical" ? "dot-critical" : "dot-warning"}"></span>Dropping fast`
+        : "";
+    } else {
+      velEl.innerHTML = `—<span class="stat-unit">mg/dL/min</span>`;
+      velChip.innerHTML = "";
+    }
+
+    const calEl = document.getElementById("stat-calibration");
+    const calChip = document.getElementById("stat-calibration-chip");
+    if (calibration) {
+      calEl.textContent = calibration.is_trusted ? "Trusted" : "Warming up";
+      calChip.innerHTML = `<span class="dot ${calibration.is_trusted ? "dot-good" : "dot-muted"}"></span>n = ${calibration.point_count}`;
+    } else {
+      calEl.textContent = "—";
+      calChip.innerHTML = "";
+    }
+
+    document.getElementById("stat-updated").textContent = new Date().toLocaleTimeString();
+  }
+
+  function renderReadingsTable(readings) {
+    const tbody = document.querySelector("#readings-table tbody");
+    tbody.innerHTML = "";
+    readings.slice(0, 20).forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${formatTime(r.timestamp)}</td><td>${r.estimated_glucose_mg_dl.toFixed(1)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderAlertsTable(alerts) {
+    const tbody = document.querySelector("#alerts-table tbody");
+    const empty = document.getElementById("alerts-empty");
+    tbody.innerHTML = "";
+    empty.style.display = alerts.length === 0 ? "block" : "none";
+    alerts.slice(0, 20).forEach((a) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${formatTime(a.timestamp)}</td><td>${a.severity}</td><td>${a.velocity_mg_dl_per_min.toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  let pollTimer = null;
+
+  async function refresh() {
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) return;
+
+    try {
+      const [dog, readings, alerts, calibration] = await Promise.all([
+        fetchJSON(`/dogs/${dogId}`),
+        fetchJSON(`/readings/${dogId}?limit=200`),
+        fetchJSON(`/dogs/${dogId}/alerts?limit=200`),
+        fetchJSON(`/dogs/${dogId}/calibration/current`).catch(() => null),
+      ]);
+      renderChart(dog, readings, alerts);
+      renderStats(dog, readings, alerts, calibration);
+      renderReadingsTable(readings);
+      renderAlertsTable(alerts);
+    } catch (err) {
+      console.error("Dashboard refresh failed:", err);
+    }
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    refresh();
+    pollTimer = setInterval(refresh, POLL_INTERVAL_MS);
+  }
+
+  dogIdInput.addEventListener("change", startPolling);
+  startPolling();
+})();
+</script>
+</body>
+</html>

@@ -38,7 +38,9 @@ python simulator/simulate_dog_sensor.py --dog-id 1 --mobile-bridge-url http://lo
 ```
 
 Watch Terminal 1's log for `Dog BG: ... mg/dL (Δ ... mg/dL/min)` lines as readings arrive,
-and `WARNING` lines when a rapid hypoglycemic drop is flagged.
+and `WARNING` lines when a rapid hypoglycemic drop is flagged. Or open
+**http://localhost:8000/dashboard/** in a browser for a live-updating chart of the trend,
+target range, and alert history instead of reading logs.
 
 ## Deliberately out of scope
 
