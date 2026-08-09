@@ -5,9 +5,10 @@ modeled on open-source human CGM tooling (xDrip+'s mobile ingestion/parsing role
 Nightscout's cloud REST API role) but implemented from scratch in Python. The software
 (this README's Quick Start) runs entirely on simulated data at $0 cost. A physical
 prototype is in progress in `hardware-bridge/` — see that directory's own README — reusing
-an already-FDA-approved human CGM sensor (FreeStyle Libre 2, already used off-label on
-dogs by vets) and an off-the-shelf NFC→BLE bridge transmitter rather than engineering any
-new biosensor hardware.
+an already-FDA-approved, OTC human CGM sensor (Dexcom Stelo, built on the same G7 sensor
+platform used off-label on dogs by vets) rather than engineering any new biosensor
+hardware. Stelo broadcasts BLE natively, so no separate NFC/BLE bridge hardware is needed
+either.
 
 ## Components
 

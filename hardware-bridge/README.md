@@ -1,19 +1,22 @@
 # hardware-bridge
 
-ESP32/ESP-IDF firmware that will eventually read a real FreeStyle Libre 2 sensor (via a
-Bubble/MiaoMiao NFC→BLE transmitter) and forward readings to `mobile-bridge` over WiFi,
-using the exact same `POST /telemetry/frame` schema `cloud-backend/simulator/simulate_dog_sensor.py`
-already uses — so `mobile-bridge` and `cloud-backend` need zero changes.
+ESP32/ESP-IDF firmware that will eventually read a real Dexcom Stelo sensor directly over
+BLE (Stelo, like the rest of the Dexcom G6/G7 family, broadcasts natively — no separate
+NFC/BLE bridge hardware needed, unlike Libre) and forward readings to `mobile-bridge` over
+WiFi, using the exact same `POST /telemetry/frame` schema
+`cloud-backend/simulator/simulate_dog_sensor.py` already uses — so `mobile-bridge` and
+`cloud-backend` need zero changes.
 
-## Current state (Step 2 of the build plan)
+## Current state (Step 2 of the build plan — done)
 
 WiFi connect + SNTP time sync + a debug timer that posts a fake, slowly-varying
 `TelemetryFrame` on a configurable interval. This proves the WiFi → HTTP →
-mobile-bridge → cloud-backend path on real hardware *before* any Libre/Bubble sensor is
-in hand. `main/main.cpp`'s `next_debug_raw_value()` is explicitly a placeholder, replaced
-in Step 3 once a Bubble/MiaoMiao transmitter is available: a BLE central connection reads
-it directly, using the real packet format pulled from xDrip+'s open-source implementation
-(`NightscoutFoundation/xDrip` on GitHub) at that point — not fabricated in advance.
+mobile-bridge → cloud-backend path on real hardware *before* any Stelo sensor is in hand.
+`main/main.cpp`'s `next_debug_raw_value()` is explicitly a placeholder, replaced in Step 3
+once a Stelo sensor is available: a BLE central connection reads it directly, using the
+real packet format and pairing sequence pulled from xDrip+'s open-source implementation
+(`NightscoutFoundation/xDrip` on GitHub, which documents G6/G7/Stelo "native mode" BLE)
+at that point — not fabricated in advance.
 
 ## Build & flash
 
