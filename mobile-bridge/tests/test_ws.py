@@ -3,6 +3,9 @@ from fastapi.testclient import TestClient
 
 from app import calibration, forwarder
 from app.main import app as mobile_app
+from tests.conftest import TEST_CGM_SHARED_SECRET
+
+_AUTH_HEADERS = {"X-API-Key": TEST_CGM_SHARED_SECRET}
 
 
 def _seed_dog(live_cloud_backend: str, name: str) -> int:
@@ -14,6 +17,7 @@ def _seed_dog(live_cloud_backend: str, name: str) -> int:
             "weight_kg": 12.5,
             "feeding_schedule": ["07:00", "17:00"],
         },
+        headers=_AUTH_HEADERS,
     )
     assert resp.status_code == 201
     return resp.json()["id"]
@@ -44,7 +48,7 @@ def test_ws_stream_processes_multiple_frames_and_writes_to_cloud_backend(
             assert ack["status"] == "ok"
             assert "reading_id" in ack
 
-    readings_resp = httpx.get(f"{live_cloud_backend}/readings/{dog_id}")
+    readings_resp = httpx.get(f"{live_cloud_backend}/readings/{dog_id}", headers=_AUTH_HEADERS)
     assert readings_resp.status_code == 200
     assert len(readings_resp.json()) == len(frames)
 
@@ -72,5 +76,5 @@ def test_ws_stream_reports_error_and_stays_open_on_bad_frame(live_cloud_backend,
         ack = ws.receive_json()
         assert ack["status"] == "ok"
 
-    readings_resp = httpx.get(f"{live_cloud_backend}/readings/{dog_id}")
+    readings_resp = httpx.get(f"{live_cloud_backend}/readings/{dog_id}", headers=_AUTH_HEADERS)
     assert len(readings_resp.json()) == 1

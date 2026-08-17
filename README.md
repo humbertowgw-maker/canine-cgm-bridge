@@ -32,11 +32,16 @@ either.
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r cloud-backend/requirements.txt -r mobile-bridge/requirements.txt
 
+# Every cloud-backend route (except /health and /dashboard) requires this
+# header — cloud-backend fails closed if it's unset, so pick any value and
+# use the SAME one in both terminals.
+export CGM_SHARED_SECRET=local-dev-secret
+
 # Terminal 1
-cd cloud-backend && uvicorn app.main:app --reload --port 8000
+cd cloud-backend && CGM_SHARED_SECRET=$CGM_SHARED_SECRET uvicorn app.main:app --reload --port 8000
 
 # Terminal 2
-cd mobile-bridge && CLOUD_BACKEND_URL=http://localhost:8000 uvicorn app.main:app --reload --port 9000
+cd mobile-bridge && CLOUD_BACKEND_URL=http://localhost:8000 CGM_SHARED_SECRET=$CGM_SHARED_SECRET uvicorn app.main:app --reload --port 9000
 
 # Terminal 3 — seed a Pet Profile, then run the simulator (calibration warm-up is automatic)
 curl -X POST http://localhost:9000/profile -H "Content-Type: application/json" \

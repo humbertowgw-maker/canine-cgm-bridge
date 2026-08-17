@@ -11,6 +11,7 @@ import httpx
 import pytest
 
 CLOUD_BACKEND_DIR = Path(__file__).resolve().parents[2] / "cloud-backend"
+TEST_CGM_SHARED_SECRET = "test-secret-for-integration-tests"
 
 
 @pytest.fixture(autouse=True)
@@ -30,13 +31,16 @@ def _free_port() -> int:
 
 
 @pytest.fixture()
-def live_cloud_backend(tmp_path):
+def live_cloud_backend(tmp_path, monkeypatch):
     """Spawns a real cloud-backend uvicorn process against a throwaway SQLite
     file, so end-to-end tests exercise the real HTTP boundary rather than
     calling Python functions directly."""
+    from app import forwarder
+
+    monkeypatch.setattr(forwarder, "CGM_SHARED_SECRET", TEST_CGM_SHARED_SECRET)
     port = _free_port()
     db_path = tmp_path / "test_cloud.db"
-    env = {**os.environ, "DATABASE_URL": f"sqlite:///{db_path}"}
+    env = {**os.environ, "DATABASE_URL": f"sqlite:///{db_path}", "CGM_SHARED_SECRET": TEST_CGM_SHARED_SECRET}
 
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:app", "--port", str(port)],

@@ -3,7 +3,7 @@ import logging
 
 import httpx
 
-from app.config import CLOUD_BACKEND_URL
+from app.config import CGM_SHARED_SECRET, CLOUD_BACKEND_URL
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,9 @@ async def _request_with_retry(method: str, path: str, json: dict | None = None) 
             if delay:
                 await asyncio.sleep(delay)
             try:
-                response = await client.request(method, url, json=json)
+                response = await client.request(
+                    method, url, json=json, headers={"X-API-Key": CGM_SHARED_SECRET or ""}
+                )
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPError as exc:

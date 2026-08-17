@@ -2,10 +2,11 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.database import init_db
+from app.deps import require_api_key
 from app.routers import alerts, calibration, dogs, readings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -27,9 +28,9 @@ def health():
     return {"status": "ok"}
 
 
-app.include_router(dogs.router)
-app.include_router(readings.router)
-app.include_router(calibration.router)
-app.include_router(alerts.router)
+app.include_router(dogs.router, dependencies=[Depends(require_api_key)])
+app.include_router(readings.router, dependencies=[Depends(require_api_key)])
+app.include_router(calibration.router, dependencies=[Depends(require_api_key)])
+app.include_router(alerts.router, dependencies=[Depends(require_api_key)])
 
 app.mount("/dashboard", StaticFiles(directory=STATIC_DIR, html=True), name="dashboard")

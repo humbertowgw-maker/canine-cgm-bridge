@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
 from app.database import get_db
+from app.deps import require_api_key
 from app.main import app
 
 
@@ -24,6 +25,7 @@ def client(db_engine):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[require_api_key] = lambda: None
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -169,3 +171,29 @@ def test_full_flow_calibration_reading_and_alert(client):
     # 7. Velocity/latest should reflect the same drop
     velocity_resp = client.get(f"/dogs/{dog_id}/velocity/latest").json()
     assert velocity_resp["velocity_mg_dl_per_min"] < 0
+
+
+def test_dogs_route_rejects_requests_without_a_valid_api_key(db_engine, monkeypatch):
+    # Uses the real require_api_key dependency (no override) to prove the
+    # auth gate actually rejects unauthenticated/incorrect requests, not just
+    # that tests can bypass it.
+    import app.deps as deps_module
+
+    monkeypatch.setattr(deps_module, "CGM_SHARED_SECRET", "the-real-secret")
+    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+
+    def override_get_db():
+        db = testing_session_local()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as c:
+            assert c.get("/dogs").status_code == 401
+            assert c.get("/dogs", headers={"X-API-Key": "wrong"}).status_code == 401
+            assert c.get("/dogs", headers={"X-API-Key": "the-real-secret"}).status_code == 200
+    finally:
+        app.dependency_overrides.clear()

@@ -26,6 +26,22 @@ async def test_request_with_retry_returns_json_on_success(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_request_with_retry_sends_the_shared_secret_header(monkeypatch):
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["x_api_key"] = request.headers.get("x-api-key")
+        return httpx.Response(200, json={"ok": True})
+
+    monkeypatch.setattr(forwarder, "CLOUD_BACKEND_URL", "http://cloud-backend.test")
+    monkeypatch.setattr(forwarder, "CGM_SHARED_SECRET", "the-shared-secret")
+    monkeypatch.setattr(forwarder, "_build_client", _mock_client_factory(handler))
+
+    await forwarder._request_with_retry("GET", "/dogs/1/calibration/current")
+    assert seen["x_api_key"] == "the-shared-secret"
+
+
+@pytest.mark.asyncio
 async def test_request_with_retry_succeeds_after_transient_failures(monkeypatch):
     calls = {"count": 0}
 

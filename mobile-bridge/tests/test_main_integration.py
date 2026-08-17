@@ -3,6 +3,7 @@ import pytest
 
 from app import calibration, forwarder
 from app.main import app as mobile_app
+from tests.conftest import TEST_CGM_SHARED_SECRET
 
 
 @pytest.mark.asyncio
@@ -43,6 +44,8 @@ async def test_frame_flows_end_to_end_through_live_cloud_backend(
         assert "reading_id" in body
 
     async with httpx.AsyncClient(base_url=live_cloud_backend) as cloud_client:
-        readings_resp = await cloud_client.get(f"/readings/{dog_id}")
+        readings_resp = await cloud_client.get(
+            f"/readings/{dog_id}", headers={"X-API-Key": TEST_CGM_SHARED_SECRET}
+        )
         assert readings_resp.status_code == 200
         assert len(readings_resp.json()) == 1

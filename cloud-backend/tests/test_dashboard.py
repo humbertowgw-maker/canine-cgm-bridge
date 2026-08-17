@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
 from app.database import get_db
+from app.deps import require_api_key
 from app.main import app
 
 
@@ -23,6 +24,7 @@ def client(db_engine):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[require_api_key] = lambda: None
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
