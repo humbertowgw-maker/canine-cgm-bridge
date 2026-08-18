@@ -156,12 +156,13 @@ def create_reading(
     db: Session,
     dog_id: int,
     timestamp: datetime,
-    raw_value: float,
-    temperature_f: float,
     estimated_glucose_mg_dl: float,
-    mobile_estimated_glucose_mg_dl: float | None,
-    calibration_coefficient_id: int,
     source: str,
+    raw_value: float | None = None,
+    temperature_f: float | None = None,
+    mobile_estimated_glucose_mg_dl: float | None = None,
+    calibration_coefficient_id: int | None = None,
+    note: str | None = None,
 ) -> models.GlucoseReading:
     reading = models.GlucoseReading(
         dog_id=dog_id,
@@ -172,6 +173,7 @@ def create_reading(
         mobile_estimated_glucose_mg_dl=mobile_estimated_glucose_mg_dl,
         calibration_coefficient_id=calibration_coefficient_id,
         source=source,
+        note=note,
     )
     db.add(reading)
     db.commit()
@@ -253,3 +255,26 @@ def get_latest_alert(db: Session, dog_id: int) -> models.VelocityAlert | None:
         .limit(1)
     )
     return db.execute(stmt).scalar_one_or_none()
+
+
+# ---- Feeding events ----
+
+
+def create_feeding_event(
+    db: Session, dog_id: int, timestamp: datetime, note: str | None
+) -> models.FeedingEvent:
+    event = models.FeedingEvent(dog_id=dog_id, timestamp=timestamp, note=note)
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+def get_feeding_events(
+    db: Session, dog_id: int, since: datetime | None = None, limit: int = 100
+) -> list[models.FeedingEvent]:
+    stmt = select(models.FeedingEvent).where(models.FeedingEvent.dog_id == dog_id)
+    if since is not None:
+        stmt = stmt.where(models.FeedingEvent.timestamp >= since)
+    stmt = stmt.order_by(models.FeedingEvent.timestamp.desc()).limit(limit)
+    return list(db.execute(stmt).scalars())

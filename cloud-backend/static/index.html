@@ -212,6 +212,9 @@
   .alert-tick:hover { opacity: 1; }
   .alert-warning { stroke: var(--status-warning); }
   .alert-critical { stroke: var(--status-critical); }
+  .feeding-tick { stroke: var(--text-muted); stroke-width: 1.5; stroke-dasharray: 2 2; opacity: 0.6; cursor: pointer; }
+  .feeding-tick:hover { opacity: 1; }
+  .feeding-dot { fill: var(--text-muted); }
 
   .tooltip {
     position: absolute;
@@ -259,6 +262,8 @@
     <div class="dog-picker">
       <span class="live-dot" id="live-dot"></span>
       <button id="enable-notifications" type="button" class="btn-ghost">🔔 Enable alerts</button>
+      <label for="api-key-input">API key</label>
+      <input id="api-key-input" type="password" placeholder="X-API-Key" />
       <label for="dog-id-input">Dog ID</label>
       <input id="dog-id-input" type="number" min="1" value="1" list="dog-datalist" />
       <datalist id="dog-datalist"></datalist>
@@ -304,7 +309,48 @@
   </section>
 
   <section class="panel">
+    <p class="panel-title">Log a glucose reading</p>
+    <p class="empty-note" style="margin:0 0 12px;">No sensor needed — enter a glucometer reading directly. Works exactly like a sensor reading everywhere else (trend chart, hypo-drop alerts).</p>
+    <form id="manual-reading-form" class="cal-form">
+      <label>Glucose (mg/dL)
+        <input type="number" step="0.1" id="manual-glucose" required />
+      </label>
+      <label>Timestamp (blank = now)
+        <input type="datetime-local" id="manual-timestamp" />
+      </label>
+      <label>Note (optional)
+        <input type="text" id="manual-note" placeholder="e.g. pre-meal check" />
+      </label>
+      <button type="submit">Log reading</button>
+      <span id="manual-form-status"></span>
+    </form>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title">Log a feeding</p>
+    <form id="feeding-form" class="cal-form">
+      <label>Timestamp (blank = now)
+        <input type="datetime-local" id="feeding-timestamp" />
+      </label>
+      <label>Note (optional)
+        <input type="text" id="feeding-note" placeholder="e.g. 1 cup kibble" />
+      </label>
+      <button type="submit">Log feeding</button>
+      <span id="feeding-form-status"></span>
+    </form>
+    <details style="margin-top:12px;">
+      <summary>View recent feedings</summary>
+      <table id="feedings-table">
+        <thead><tr><th>Time</th><th>Note</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="empty-note" id="feedings-empty" style="display:none;">No feedings logged yet.</p>
+    </details>
+  </section>
+
+  <section class="panel">
     <p class="panel-title">Submit a calibration point</p>
+    <p class="empty-note" style="margin:0 0 12px;">For the automated sensor bridge — pairs a raw sensor value against a reference glucometer reading to tune the conversion. Not needed for manual logging above.</p>
     <form id="calibration-form" class="cal-form">
       <label>Reference BG (mg/dL)
         <input type="number" step="0.1" id="cal-reference" required />
@@ -343,9 +389,20 @@
   const tooltip = document.getElementById("tooltip");
   const chartWrap = document.getElementById("chart-wrap");
   const dogIdInput = document.getElementById("dog-id-input");
+  const apiKeyInput = document.getElementById("api-key-input");
   const notifyBtn = document.getElementById("enable-notifications");
   const calForm = document.getElementById("calibration-form");
   const calStatus = document.getElementById("cal-form-status");
+
+  // Every route requires X-API-Key (cloud-backend fails closed if it's missing).
+  // This is a personal/trusted-device dashboard, not multi-tenant, so persisting
+  // the key in localStorage once is the right tradeoff over re-entering it per visit.
+  const API_KEY_STORAGE = "cgm_api_key";
+  apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE) || "";
+  apiKeyInput.addEventListener("change", () => {
+    localStorage.setItem(API_KEY_STORAGE, apiKeyInput.value);
+    startPolling();
+  });
 
   const svgns = "http://www.w3.org/2000/svg";
   function el(tag, attrs) {
@@ -355,7 +412,9 @@
   }
 
   async function fetchJSON(path) {
-    const res = await fetch(`${CLOUD_BACKEND_URL}${path}`);
+    const res = await fetch(`${CLOUD_BACKEND_URL}${path}`, {
+      headers: { "X-API-Key": apiKeyInput.value },
+    });
     if (!res.ok) throw new Error(`${path} -> ${res.status}`);
     return res.json();
   }
@@ -363,7 +422,7 @@
   async function postJSON(path, body) {
     const res = await fetch(`${CLOUD_BACKEND_URL}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKeyInput.value },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`${path} -> ${res.status}`);
@@ -455,7 +514,7 @@
     return MARGIN.top + plotH - ((v - vMin) / (vMax - vMin)) * plotH;
   }
 
-  function renderChart(dog, readings, alerts) {
+  function renderChart(dog, readings, alerts, feedings) {
     svg.innerHTML = "";
     if (readings.length === 0) {
       const msg = el("text", {
@@ -472,7 +531,11 @@
     const times = sorted.map((r) => new Date(r.timestamp).getTime());
     const values = sorted.map((r) => r.estimated_glucose_mg_dl);
 
-    const tMin = Math.min(...times), tMax = Math.max(...times);
+    // time range must also cover feedings, or a feeding logged outside the
+    // span of glucose readings (e.g. only one reading so far) gets clipped
+    // by the tMin/tMax bounds check below and silently never drawn.
+    const feedingTimes = (feedings || []).map((f) => new Date(f.timestamp).getTime());
+    const tMin = Math.min(...times, ...feedingTimes), tMax = Math.max(...times, ...feedingTimes);
     const dataMin = Math.min(...values, dog.target_range_low_mg_dl);
     const dataMax = Math.max(...values, dog.target_range_high_mg_dl);
     const pad = Math.max(10, (dataMax - dataMin) * 0.1);
@@ -537,6 +600,25 @@
       });
       tick.addEventListener("mouseleave", hideTooltip);
       svg.appendChild(tick);
+    });
+
+    // feeding markers — dashed, muted, distinct from alert ticks, drawn below the
+    // alert ticks visually since alerts are the higher-priority signal
+    (feedings || []).forEach((f) => {
+      const ft = new Date(f.timestamp).getTime();
+      if (ft < tMin || ft > tMax) return;
+      const fx = x(ft);
+      const tick = el("line", {
+        x1: fx, x2: fx, y1: MARGIN.top, y2: CHART_H - MARGIN.bottom, class: "feeding-tick",
+      });
+      tick.addEventListener("mouseenter", (evt) => {
+        showTooltip(evt, `🍽️ ${f.note || "Feeding"}<br>${formatTime(f.timestamp)}`);
+      });
+      tick.addEventListener("mouseleave", hideTooltip);
+      svg.appendChild(tick);
+      svg.appendChild(el("circle", {
+        cx: fx, cy: MARGIN.top + 6, r: 3, class: "feeding-dot",
+      }));
     });
 
     // crosshair overlay
@@ -659,21 +741,35 @@
 
   let pollTimer = null;
 
+  function renderFeedingsTable(feedings) {
+    const tbody = document.querySelector("#feedings-table tbody");
+    const empty = document.getElementById("feedings-empty");
+    tbody.innerHTML = "";
+    empty.style.display = feedings.length === 0 ? "block" : "none";
+    feedings.slice(0, 20).forEach((f) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${formatTime(f.timestamp)}</td><td>${f.note || ""}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
   async function refresh() {
     const dogId = parseInt(dogIdInput.value, 10);
     if (!dogId || dogId < 1) return;
 
     try {
-      const [dog, readings, alerts, calibration] = await Promise.all([
+      const [dog, readings, alerts, calibration, feedings] = await Promise.all([
         fetchJSON(`/dogs/${dogId}`),
         fetchJSON(`/readings/${dogId}?limit=200`),
         fetchJSON(`/dogs/${dogId}/alerts?limit=200`),
         fetchJSON(`/dogs/${dogId}/calibration/current`).catch(() => null),
+        fetchJSON(`/dogs/${dogId}/feedings?limit=200`).catch(() => []),
       ]);
-      renderChart(dog, readings, alerts);
+      renderChart(dog, readings, alerts, feedings);
       renderStats(dog, readings, alerts, calibration);
       renderReadingsTable(readings);
       renderAlertsTable(alerts);
+      renderFeedingsTable(feedings);
       maybeNotify(dog, alerts);
     } catch (err) {
       console.error("Dashboard refresh failed:", err);
@@ -689,6 +785,59 @@
   }
 
   dogIdInput.addEventListener("change", startPolling);
+
+  const manualForm = document.getElementById("manual-reading-form");
+  const manualStatus = document.getElementById("manual-form-status");
+  manualForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault();
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) {
+      manualStatus.textContent = "Pick a dog first.";
+      return;
+    }
+
+    const glucose = parseFloat(document.getElementById("manual-glucose").value);
+    const tsInput = document.getElementById("manual-timestamp").value;
+    const timestamp = tsInput ? new Date(tsInput).toISOString() : new Date().toISOString();
+    const note = document.getElementById("manual-note").value || null;
+
+    manualStatus.textContent = "Logging…";
+    try {
+      await postJSON("/readings/manual", { dog_id: dogId, timestamp, glucose_mg_dl: glucose, note });
+      manualStatus.textContent = `Logged ${glucose.toFixed(1)} mg/dL.`;
+      manualForm.reset();
+      refresh();
+    } catch (err) {
+      manualStatus.textContent = "Failed — check the dog id, glucose value, and API key.";
+      console.error("Manual reading submit failed:", err);
+    }
+  });
+
+  const feedingForm = document.getElementById("feeding-form");
+  const feedingStatus = document.getElementById("feeding-form-status");
+  feedingForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault();
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) {
+      feedingStatus.textContent = "Pick a dog first.";
+      return;
+    }
+
+    const tsInput = document.getElementById("feeding-timestamp").value;
+    const timestamp = tsInput ? new Date(tsInput).toISOString() : new Date().toISOString();
+    const note = document.getElementById("feeding-note").value || null;
+
+    feedingStatus.textContent = "Logging…";
+    try {
+      await postJSON(`/dogs/${dogId}/feedings`, { dog_id: dogId, timestamp, note });
+      feedingStatus.textContent = "Logged.";
+      feedingForm.reset();
+      refresh();
+    } catch (err) {
+      feedingStatus.textContent = "Failed — check the dog id and API key.";
+      console.error("Feeding submit failed:", err);
+    }
+  });
 
   calForm.addEventListener("submit", async (evt) => {
     evt.preventDefault();

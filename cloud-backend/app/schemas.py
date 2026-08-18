@@ -73,18 +73,45 @@ class ReadingCreate(BaseModel):
     source: str = "live"
 
 
+class ManualReadingCreate(BaseModel):
+    dog_id: int
+    timestamp: datetime
+    glucose_mg_dl: float
+    note: str | None = None
+
+
 class ReadingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     dog_id: int
     timestamp: datetime
-    raw_value: float
-    temperature_f: float
+    raw_value: float | None
+    temperature_f: float | None
     estimated_glucose_mg_dl: float
     mobile_estimated_glucose_mg_dl: float | None
-    calibration_coefficient_id: int
+    calibration_coefficient_id: int | None
     source: str
+    note: str | None
+    created_at: datetime
+
+
+# ---- Feeding events ----
+
+
+class FeedingEventCreate(BaseModel):
+    dog_id: int
+    timestamp: datetime
+    note: str | None = None
+
+
+class FeedingEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    dog_id: int
+    timestamp: datetime
+    note: str | None
     created_at: datetime
 
 

@@ -41,6 +41,7 @@ class Dog(Base):
         back_populates="dog", foreign_keys="GlucoseReading.dog_id"
     )
     alerts: Mapped[list["VelocityAlert"]] = relationship(back_populates="dog")
+    feeding_events: Mapped[list["FeedingEvent"]] = relationship(back_populates="dog")
 
 
 class CalibrationCoefficient(Base):
@@ -78,18 +79,35 @@ class GlucoseReading(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     dog_id: Mapped[int] = mapped_column(ForeignKey("dogs.id"), nullable=False, index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    raw_value: Mapped[float] = mapped_column(Float, nullable=False)
-    temperature_f: Mapped[float] = mapped_column(Float, nullable=False)
+    # raw_value/temperature_f/calibration_coefficient_id are only meaningful for
+    # sensor-derived readings (source="live") — null for source="manual", where a
+    # human enters estimated_glucose_mg_dl directly (e.g. from a glucometer), with
+    # no sensor pipeline involved.
+    raw_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    temperature_f: Mapped[float | None] = mapped_column(Float, nullable=True)
     estimated_glucose_mg_dl: Mapped[float] = mapped_column(Float, nullable=False)
     mobile_estimated_glucose_mg_dl: Mapped[float | None] = mapped_column(Float, nullable=True)
-    calibration_coefficient_id: Mapped[int] = mapped_column(
-        ForeignKey("calibration_coefficients.id"), nullable=False
+    calibration_coefficient_id: Mapped[int | None] = mapped_column(
+        ForeignKey("calibration_coefficients.id"), nullable=True
     )
     source: Mapped[str] = mapped_column(String, nullable=False, default="live")
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
 
     dog: Mapped["Dog"] = relationship(back_populates="readings", foreign_keys=[dog_id])
     calibration_coefficient: Mapped["CalibrationCoefficient"] = relationship()
+
+
+class FeedingEvent(Base):
+    __tablename__ = "feeding_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    dog_id: Mapped[int] = mapped_column(ForeignKey("dogs.id"), nullable=False, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+
+    dog: Mapped["Dog"] = relationship(back_populates="feeding_events")
 
 
 class VelocityAlert(Base):

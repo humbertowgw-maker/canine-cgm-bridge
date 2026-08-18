@@ -173,6 +173,109 @@ def test_full_flow_calibration_reading_and_alert(client):
     assert velocity_resp["velocity_mg_dl_per_min"] < 0
 
 
+def test_manual_reading_requires_no_calibration_and_shows_up_like_a_sensor_reading(client):
+    dog_id = client.post(
+        "/dogs", json={"name": "Biscuit", "breed": "Beagle", "weight_kg": 12.5}
+    ).json()["id"]
+
+    base_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    resp = client.post(
+        "/readings/manual",
+        json={
+            "dog_id": dog_id,
+            "timestamp": base_time.isoformat(),
+            "glucose_mg_dl": 145.0,
+            "note": "pre-meal check",
+        },
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["reading"]["estimated_glucose_mg_dl"] == 145.0
+    assert body["reading"]["source"] == "manual"
+    assert body["reading"]["note"] == "pre-meal check"
+    assert body["reading"]["raw_value"] is None
+    assert body["reading"]["temperature_f"] is None
+    assert body["reading"]["calibration_coefficient_id"] is None
+    assert body["alert"] is None  # first reading, nothing to diff against
+
+    readings_list = client.get(f"/readings/{dog_id}").json()
+    assert len(readings_list) == 1
+    assert readings_list[0]["source"] == "manual"
+
+
+def test_manual_reading_feeds_the_same_hypo_drop_alert_engine_as_sensor_readings(client):
+    dog_id = client.post(
+        "/dogs", json={"name": "Biscuit", "breed": "Beagle", "weight_kg": 12.5}
+    ).json()["id"]
+
+    base_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    client.post(
+        "/readings/manual",
+        json={"dog_id": dog_id, "timestamp": base_time.isoformat(), "glucose_mg_dl": 220.0},
+    )
+    drop_resp = client.post(
+        "/readings/manual",
+        json={
+            "dog_id": dog_id,
+            "timestamp": (base_time + timedelta(minutes=10)).isoformat(),
+            "glucose_mg_dl": 160.0,
+        },
+    )
+    assert drop_resp.status_code == 201
+    assert drop_resp.json()["alert"] is not None
+    assert drop_resp.json()["alert"]["is_hypo_drop_flag"] is True
+
+
+def test_manual_reading_404_for_missing_dog(client):
+    resp = client.post(
+        "/readings/manual",
+        json={"dog_id": 9999, "timestamp": "2026-01-01T00:00:00Z", "glucose_mg_dl": 100.0},
+    )
+    assert resp.status_code == 404
+
+
+def test_create_and_list_feeding_events(client):
+    dog_id = client.post(
+        "/dogs", json={"name": "Rex", "breed": "Labrador", "weight_kg": 30.0}
+    ).json()["id"]
+
+    base_time = datetime(2026, 1, 1, 7, 0, tzinfo=timezone.utc)
+    create_resp = client.post(
+        f"/dogs/{dog_id}/feedings",
+        json={"dog_id": dog_id, "timestamp": base_time.isoformat(), "note": "1 cup kibble"},
+    )
+    assert create_resp.status_code == 201
+    body = create_resp.json()
+    assert body["dog_id"] == dog_id
+    assert body["note"] == "1 cup kibble"
+
+    list_resp = client.get(f"/dogs/{dog_id}/feedings")
+    assert list_resp.status_code == 200
+    feedings = list_resp.json()
+    assert len(feedings) == 1
+    assert feedings[0]["id"] == body["id"]
+
+
+def test_feeding_event_404_for_missing_dog(client):
+    resp = client.post(
+        f"/dogs/9999/feedings",
+        json={"dog_id": 9999, "timestamp": "2026-01-01T00:00:00Z", "note": None},
+    )
+    assert resp.status_code == 404
+    assert client.get("/dogs/9999/feedings").status_code == 404
+
+
+def test_feeding_event_rejects_mismatched_dog_id_between_path_and_body(client):
+    dog_id = client.post(
+        "/dogs", json={"name": "Rex", "breed": "Labrador", "weight_kg": 30.0}
+    ).json()["id"]
+    resp = client.post(
+        f"/dogs/{dog_id}/feedings",
+        json={"dog_id": dog_id + 1, "timestamp": "2026-01-01T00:00:00Z", "note": None},
+    )
+    assert resp.status_code == 400
+
+
 def test_dogs_route_rejects_requests_without_a_valid_api_key(db_engine, monkeypatch):
     # Uses the real require_api_key dependency (no override) to prove the
     # auth gate actually rejects unauthenticated/incorrect requests, not just

@@ -41,6 +41,9 @@ def test_dashboard_serves_html(client):
     assert "/dogs/" in body
     assert "/calibration/current" in body
     assert "/alerts" in body
+    assert "/readings/manual" in body
+    assert "/feedings" in body
+    assert "X-API-Key" in body
 
 
 def test_dashboard_redirects_without_trailing_slash(client):
