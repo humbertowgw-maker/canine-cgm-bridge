@@ -80,6 +80,22 @@ class ManualReadingCreate(BaseModel):
     note: str | None = None
 
 
+class DeviceReadingCreate(BaseModel):
+    """A reading a device already computed as a final mg/dL value — e.g. a
+    consumer BLE glucometer's Glucose Measurement characteristic — as opposed
+    to a raw sensor value that still needs calibration (see ReadingCreate) or
+    a value a human typed in (see ManualReadingCreate). `source` identifies
+    which device/protocol produced it (e.g. "glucometer_ble") so it's
+    distinguishable from human-entered "manual" readings while still reusing
+    the exact same trend chart and hypo-drop alert engine."""
+
+    dog_id: int
+    timestamp: datetime
+    glucose_mg_dl: float
+    source: str
+    note: str | None = None
+
+
 class ReadingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

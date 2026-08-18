@@ -85,6 +85,41 @@ def create_manual_reading(reading_in: schemas.ManualReadingCreate, db: Session =
     return schemas.ReadingResponse(reading=reading, alert=alert)
 
 
+@router.post("/readings/device", response_model=schemas.ReadingResponse, status_code=201)
+def create_device_reading(reading_in: schemas.DeviceReadingCreate, db: Session = Depends(get_db)):
+    """A reading a device already computed as a final mg/dL value (e.g. a
+    consumer BLE glucometer implementing the Bluetooth SIG Glucose Profile) —
+    no calibration coefficient needed, same as /readings/manual, but tagged
+    with the specific device source instead of "manual" so it's clear the
+    number came from a device, not a human typing it in."""
+    dog = crud.get_dog(db, reading_in.dog_id)
+    if dog is None:
+        raise HTTPException(status_code=404, detail="Dog not found")
+
+    reading = crud.create_reading(
+        db,
+        dog_id=reading_in.dog_id,
+        timestamp=reading_in.timestamp,
+        estimated_glucose_mg_dl=reading_in.glucose_mg_dl,
+        source=reading_in.source,
+        note=reading_in.note,
+    )
+
+    velocity = canine_analytics.get_window_velocity(db, reading_in.dog_id, reading)
+    alert = canine_analytics.check_hypo_drop(db, reading_in.dog_id, reading, velocity=velocity)
+
+    velocity_str = f"{velocity:+.2f}" if velocity is not None else "n/a"
+    logger.info(
+        "Dog BG (device:%s): %.1f mg/dL (Δ %s mg/dL/min) [dog_id=%s]",
+        reading.source,
+        reading.estimated_glucose_mg_dl,
+        velocity_str,
+        reading.dog_id,
+    )
+
+    return schemas.ReadingResponse(reading=reading, alert=alert)
+
+
 @router.get("/readings/{dog_id}", response_model=list[schemas.ReadingOut])
 def list_readings(
     dog_id: int,

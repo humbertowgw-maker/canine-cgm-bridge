@@ -234,6 +234,77 @@ def test_manual_reading_404_for_missing_dog(client):
     assert resp.status_code == 404
 
 
+def test_device_reading_tags_source_and_skips_calibration(client):
+    dog_id = client.post(
+        "/dogs", json={"name": "Biscuit", "breed": "Beagle", "weight_kg": 12.5}
+    ).json()["id"]
+
+    base_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    resp = client.post(
+        "/readings/device",
+        json={
+            "dog_id": dog_id,
+            "timestamp": base_time.isoformat(),
+            "glucose_mg_dl": 132.0,
+            "source": "glucometer_ble",
+            "note": "fingerstick",
+        },
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["reading"]["estimated_glucose_mg_dl"] == 132.0
+    assert body["reading"]["source"] == "glucometer_ble"
+    assert body["reading"]["note"] == "fingerstick"
+    assert body["reading"]["raw_value"] is None
+    assert body["reading"]["calibration_coefficient_id"] is None
+
+    readings_list = client.get(f"/readings/{dog_id}").json()
+    assert len(readings_list) == 1
+    assert readings_list[0]["source"] == "glucometer_ble"
+
+
+def test_device_reading_feeds_the_same_hypo_drop_alert_engine(client):
+    dog_id = client.post(
+        "/dogs", json={"name": "Biscuit", "breed": "Beagle", "weight_kg": 12.5}
+    ).json()["id"]
+
+    base_time = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    client.post(
+        "/readings/device",
+        json={
+            "dog_id": dog_id,
+            "timestamp": base_time.isoformat(),
+            "glucose_mg_dl": 220.0,
+            "source": "glucometer_ble",
+        },
+    )
+    drop_resp = client.post(
+        "/readings/device",
+        json={
+            "dog_id": dog_id,
+            "timestamp": (base_time + timedelta(minutes=10)).isoformat(),
+            "glucose_mg_dl": 160.0,
+            "source": "glucometer_ble",
+        },
+    )
+    assert drop_resp.status_code == 201
+    assert drop_resp.json()["alert"] is not None
+    assert drop_resp.json()["alert"]["is_hypo_drop_flag"] is True
+
+
+def test_device_reading_404_for_missing_dog(client):
+    resp = client.post(
+        "/readings/device",
+        json={
+            "dog_id": 9999,
+            "timestamp": "2026-01-01T00:00:00Z",
+            "glucose_mg_dl": 100.0,
+            "source": "glucometer_ble",
+        },
+    )
+    assert resp.status_code == 404
+
+
 def test_create_and_list_feeding_events(client):
     dog_id = client.post(
         "/dogs", json={"name": "Rex", "breed": "Labrador", "weight_kg": 30.0}
