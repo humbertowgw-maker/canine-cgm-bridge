@@ -1,22 +1,29 @@
 # hardware-bridge
 
-ESP32/ESP-IDF firmware that will eventually read a real Dexcom Stelo sensor directly over
-BLE (Stelo, like the rest of the Dexcom G6/G7 family, broadcasts natively — no separate
-NFC/BLE bridge hardware needed, unlike Libre) and forward readings to `mobile-bridge` over
-WiFi, using the exact same `POST /telemetry/frame` schema
+ESP32/ESP-IDF firmware intended to forward CGM readings to `mobile-bridge` over WiFi,
+using the exact same `POST /telemetry/frame` schema
 `cloud-backend/simulator/simulate_dog_sensor.py` already uses — so `mobile-bridge` and
-`cloud-backend` need zero changes.
+`cloud-backend` need zero changes regardless of what feeds this firmware's readings.
+
+**How readings actually get read is an open question as of 2026-08-18** — see
+`DEXCOM_BLE_PROTOCOL_RESEARCH.md` in this directory. The original assumption here (that
+Stelo broadcasts BLE natively the same way G6/G7 do, so an ESP32 could act as a BLE
+central and read it directly) turned out not to be confirmed by real research: digging
+into xDrip+'s actual open-source implementation shows it has a complete, working,
+reverse-engineered raw-BLE protocol for the **G5 and G6 only**. For G7 and Stelo, xDrip+
+instead reads glucose values out of Android notifications posted by Dexcom's own official
+app — a phone-side mechanism an ESP32 can't replicate. Read the research doc before
+starting Step 3; it lays out the real options (G5/G6 as a protocol testbed, an
+Android-phone-in-the-loop design for Stelo, or original reverse-engineering once a real
+Stelo is in hand).
 
 ## Current state (Step 2 of the build plan — done)
 
 WiFi connect + SNTP time sync + a debug timer that posts a fake, slowly-varying
 `TelemetryFrame` on a configurable interval. This proves the WiFi → HTTP →
-mobile-bridge → cloud-backend path on real hardware *before* any Stelo sensor is in hand.
-`main/main.cpp`'s `next_debug_raw_value()` is explicitly a placeholder, replaced in Step 3
-once a Stelo sensor is available: a BLE central connection reads it directly, using the
-real packet format and pairing sequence pulled from xDrip+'s open-source implementation
-(`NightscoutFoundation/xDrip` on GitHub, which documents G6/G7/Stelo "native mode" BLE)
-at that point — not fabricated in advance.
+mobile-bridge → cloud-backend path on real hardware before any sensor integration is
+wired in. `main/main.cpp`'s `next_debug_raw_value()` is explicitly a placeholder, to be
+replaced once Step 3's approach is decided (see `DEXCOM_BLE_PROTOCOL_RESEARCH.md`).
 
 ## Build & flash
 
