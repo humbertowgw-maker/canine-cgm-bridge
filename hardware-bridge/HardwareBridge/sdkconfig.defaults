@@ -1,0 +1,12 @@
+# NimBLE (BLE-only host, lighter than Bluedroid) — needed for the tier-2
+# BLE glucometer client (Bluetooth SIG Glucose Profile). Bluedroid isn't
+# needed since this project never talks classic Bluetooth.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_CONTROLLER_ENABLED=y
+
+# The combined WiFi+BLE/NimBLE image doesn't fit the default "Single App"
+# (1MB) factory partition — confirmed by a real build overflowing by ~95KB
+# this session. Default to the "large" variant so this doesn't surprise a
+# fresh clone even though CGM_ENABLE_BLE_GLUCOMETER itself defaults off.
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y

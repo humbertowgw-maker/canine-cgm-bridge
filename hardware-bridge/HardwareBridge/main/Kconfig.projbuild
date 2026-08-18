@@ -35,4 +35,35 @@ menu "Canine CGM Hardware Bridge Configuration"
             sensor is wired up yet (Step 2 of the build plan). Once real BLE
             sensor reads are implemented (Step 3), this debug timer is removed.
 
+    config CGM_ENABLE_BLE_GLUCOMETER
+        bool "Enable tier-2 BLE glucometer client"
+        default n
+        help
+            Scans for and connects to a nearby BLE device advertising the
+            standard Bluetooth SIG Glucose Service (0x1808), subscribes to
+            its Glucose Measurement notifications, and posts each reading
+            straight to cloud-backend's POST /readings/device — bypassing
+            mobile-bridge entirely, since a glucometer's value is already a
+            final mg/dL number with no raw-value/calibration step needed.
+            Independent of, and can run alongside, the Step 2 debug loop.
+
+    config CGM_CLOUD_BACKEND_URL
+        string "cloud-backend base URL"
+        default "http://192.168.1.100:8000"
+        help
+            Base URL of cloud-backend (no trailing slash). Only used by the
+            tier-2 BLE glucometer path (device_reading.cpp), which talks to
+            cloud-backend directly rather than through mobile-bridge. Not
+            gated behind CGM_ENABLE_BLE_GLUCOMETER — device_reading.cpp is
+            compiled unconditionally, so this must always be defined even
+            when tier 2 is disabled, the same as CGM_MOBILE_BRIDGE_URL above.
+
+    config CGM_CLOUD_BACKEND_API_KEY
+        string "cloud-backend API key (X-API-Key / CGM_SHARED_SECRET)"
+        default ""
+        help
+            Must match cloud-backend's CGM_SHARED_SECRET env var, or every
+            POST /readings/device call gets rejected with 401. Same
+            always-defined reasoning as CGM_CLOUD_BACKEND_URL above.
+
 endmenu

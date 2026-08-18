@@ -1,0 +1,8 @@
+dependencies:
+  # Peer/GATT-discovery bookkeeping helper shared by ESP-IDF's own NimBLE
+  # central examples (e.g. examples/bluetooth/nimble/blecent) — reused here
+  # rather than reimplementing connection/service/characteristic tracking,
+  # since that bookkeeping is exactly the kind of thing worth getting from a
+  # real, tested source instead of writing blind against no hardware.
+  nimble_central_utils:
+    path: ${IDF_PATH}/examples/bluetooth/nimble/common/nimble_central_utils

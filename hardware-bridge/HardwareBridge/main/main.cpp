@@ -20,6 +20,10 @@
 #include "telemetry.h"
 #include "wifi.h"
 
+#if CONFIG_CGM_ENABLE_BLE_GLUCOMETER
+#include "ble_glucose_client.h"
+#endif
+
 static const char *TAG = "main";
 
 // STEP 2 PLACEHOLDER — remove once Step 3 wires in real Stelo BLE reads.
@@ -40,6 +44,11 @@ extern "C" void app_main(void) {
     ESP_ERROR_CHECK(err);
 
     wifi_connect_and_sync_time();
+
+#if CONFIG_CGM_ENABLE_BLE_GLUCOMETER
+    ESP_LOGI(TAG, "starting tier-2 BLE glucometer client (Glucose Service 0x1808)");
+    ble_glucose_client_start();
+#endif
 
     ESP_LOGI(TAG, "starting debug telemetry loop: dog_id=%d, every %ds, target=%s",
              CONFIG_CGM_DOG_ID, CONFIG_CGM_DEBUG_FRAME_INTERVAL_SECONDS,
