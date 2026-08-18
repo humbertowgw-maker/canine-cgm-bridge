@@ -3,10 +3,12 @@
 // Build order (see the project plan): this file currently implements Step 2 only —
 // WiFi connect + a debug timer that POSTs a fake TelemetryFrame to mobile-bridge,
 // proving the WiFi -> HTTP -> mobile-bridge -> cloud-backend path on real hardware
-// before any Libre/Bubble sensor is in hand. Step 3 replaces send_debug_frame()'s
-// fake values with real parsed readings from a Bubble/MiaoMiao BLE central
-// connection (protocol pulled from xDrip+'s open-source implementation at that
-// point, not fabricated here).
+// before a Dexcom Stelo sensor is in hand. Step 3 replaces next_debug_raw_value()'s
+// fake values with real parsed readings from a direct BLE central connection to the
+// Stelo itself (it broadcasts natively, same as the rest of the Dexcom G6/G7
+// family — no separate NFC/BLE bridge transmitter needed), using the packet format
+// and pairing sequence pulled from xDrip+'s open-source implementation at that
+// point, not fabricated here.
 
 #include <cmath>
 
@@ -20,7 +22,7 @@
 
 static const char *TAG = "main";
 
-// STEP 2 PLACEHOLDER — remove once Step 3 wires in real Bubble/MiaoMiao BLE reads.
+// STEP 2 PLACEHOLDER — remove once Step 3 wires in real Stelo BLE reads.
 // Generates a slowly-varying plausible raw value so the debug frames aren't just a
 // flat line, purely so it's obvious in the dashboard that live data is flowing.
 static double next_debug_raw_value() {
