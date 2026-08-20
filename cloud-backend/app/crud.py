@@ -278,3 +278,60 @@ def get_feeding_events(
         stmt = stmt.where(models.FeedingEvent.timestamp >= since)
     stmt = stmt.order_by(models.FeedingEvent.timestamp.desc()).limit(limit)
     return list(db.execute(stmt).scalars())
+
+
+# ---- Prescribed doses (vet-entered baseline for dose guidance) ----
+
+
+def get_active_prescribed_dose(db: Session, dog_id: int) -> models.PrescribedDose | None:
+    stmt = (
+        select(models.PrescribedDose)
+        .where(models.PrescribedDose.dog_id == dog_id, models.PrescribedDose.is_active.is_(True))
+        .order_by(models.PrescribedDose.created_at.desc())
+        .limit(1)
+    )
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def deactivate_current_prescribed_dose(db: Session, dog_id: int) -> None:
+    stmt = select(models.PrescribedDose).where(
+        models.PrescribedDose.dog_id == dog_id, models.PrescribedDose.is_active.is_(True)
+    )
+    for row in db.execute(stmt).scalars():
+        row.is_active = False
+    db.commit()
+
+
+def create_prescribed_dose(
+    db: Session,
+    dog_id: int,
+    dose_iu: float,
+    frequency: str,
+    insulin_type: str | None,
+    prescribing_note: str | None,
+) -> models.PrescribedDose:
+    deactivate_current_prescribed_dose(db, dog_id)
+    row = models.PrescribedDose(
+        dog_id=dog_id,
+        dose_iu=dose_iu,
+        frequency=frequency,
+        insulin_type=insulin_type,
+        prescribing_note=prescribing_note,
+        is_active=True,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def get_prescribed_dose_history(
+    db: Session, dog_id: int, limit: int = 50
+) -> list[models.PrescribedDose]:
+    stmt = (
+        select(models.PrescribedDose)
+        .where(models.PrescribedDose.dog_id == dog_id)
+        .order_by(models.PrescribedDose.created_at.desc())
+        .limit(limit)
+    )
+    return list(db.execute(stmt).scalars())

@@ -112,6 +112,60 @@ class ReadingOut(BaseModel):
     created_at: datetime
 
 
+# ---- Prescribed dose (vet-entered baseline) & dose guidance ----
+
+
+class PrescribedDoseCreate(BaseModel):
+    dose_iu: float
+    frequency: str = Field(description='"once_daily" or "twice_daily"')
+    insulin_type: str | None = None
+    prescribing_note: str | None = Field(
+        default=None, description='e.g. "per Dr. Smith, 2026-08-20"'
+    )
+
+
+class PrescribedDoseOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    dog_id: int
+    dose_iu: float
+    frequency: str
+    insulin_type: str | None
+    prescribing_note: str | None
+    is_active: bool
+    created_at: datetime
+
+
+class DoseGuidanceOut(BaseModel):
+    """Deliberately NOT a dosing recommendation — see app/dose_guidance.py for
+    the full rationale. `signal` is always one of a small fixed set of strings;
+    there is no numeric "suggested dose" field, on purpose."""
+
+    dog_id: int
+    signal: str = Field(
+        description=(
+            "One of: no_baseline_dose, insufficient_data, reduce_indicated, "
+            "reduce_consider, in_target, elevated_no_formula"
+        )
+    )
+    message: str
+    current_dose_iu: float | None
+    current_frequency: str | None
+    window_hours: int
+    nadir_mg_dl: float | None
+    nadir_timestamp: datetime | None
+    formula_citation: str
+    somogyi_caveat: str
+    not_medical_advice: str = Field(
+        default=(
+            "This is a formula reference, not veterinary advice or a dosing "
+            "recommendation for your dog. Always confirm any dose change with "
+            "your veterinarian before administering it."
+        )
+    )
+
+
 # ---- Photo-capture extraction ----
 
 

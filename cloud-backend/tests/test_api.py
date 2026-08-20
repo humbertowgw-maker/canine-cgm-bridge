@@ -467,3 +467,164 @@ def test_photo_extract_rejects_empty_upload(client, monkeypatch):
         files={"photo": ("empty.png", b"", "image/png")},
     )
     assert resp.status_code == 400
+
+
+# ---- Dose guidance: formula reference, never a recommendation ----
+# Every branch of app/dose_guidance.py's threshold logic gets its own test —
+# this is the one place in the codebase where a wrong number has real-world
+# stakes, so "verify every branch" is not optional here.
+
+
+def _make_dog(client) -> int:
+    return client.post(
+        "/dogs", json={"name": "Rex", "breed": "Labrador", "weight_kg": 30.0}
+    ).json()["id"]
+
+
+def test_dose_guidance_refuses_without_a_baseline_dose(client):
+    dog_id = _make_dog(client)
+    resp = client.get(f"/dogs/{dog_id}/dose-guidance")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["signal"] == "no_baseline_dose"
+    assert body["current_dose_iu"] is None
+    # The response must never contain anything that looks like a suggested number.
+    assert "suggested" not in body["message"].lower()
+
+
+def test_dose_guidance_insufficient_data_with_baseline_but_no_readings(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose",
+        json={"dose_iu": 8.0, "frequency": "once_daily"},
+    )
+    resp = client.get(f"/dogs/{dog_id}/dose-guidance")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["signal"] == "insufficient_data"
+    assert body["current_dose_iu"] == 8.0
+
+
+def _log_reading(client, dog_id, glucose, hours_ago=1):
+    ts = (datetime.now(timezone.utc) - timedelta(hours=hours_ago)).isoformat()
+    resp = client.post(
+        "/readings/manual", json={"dog_id": dog_id, "timestamp": ts, "glucose_mg_dl": glucose}
+    )
+    assert resp.status_code == 201
+
+
+def test_dose_guidance_reduce_indicated_below_hard_threshold(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 79.0)  # just under the 80 mg/dL hard threshold
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "reduce_indicated"
+    assert body["nadir_mg_dl"] == 79.0
+
+
+def test_dose_guidance_reduce_consider_in_soft_band(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 90.0)  # 80 <= 90 < 100
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "reduce_consider"
+
+
+def test_dose_guidance_in_target_band(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 125.0)  # 100 <= 125 <= 150
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "in_target"
+
+
+def test_dose_guidance_elevated_gives_no_formula_not_a_guessed_increase(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 300.0)  # well above 150
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "elevated_no_formula"
+    # The whole point: no numeric suggestion anywhere in the response for this case.
+    assert "%" not in body["message"]
+    assert "IU" not in body["message"] or "no standard" in body["message"].lower()
+
+
+def test_dose_guidance_uses_true_nadir_not_latest_reading(client):
+    """The nadir must be the window's minimum, not just the most recent point —
+    this is the one place a bug would silently produce the wrong clinical signal."""
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 70.0, hours_ago=6)  # true nadir, hard-reduce territory
+    _log_reading(client, dog_id, 200.0, hours_ago=1)  # most recent, but not the nadir
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["nadir_mg_dl"] == 70.0
+    assert body["signal"] == "reduce_indicated"
+
+
+def test_dose_guidance_respects_window_hours_query_param(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 70.0, hours_ago=20)  # outside a 12h window
+    body = client.get(f"/dogs/{dog_id}/dose-guidance?window_hours=12").json()
+    assert body["signal"] == "insufficient_data"
+
+    body_24h = client.get(f"/dogs/{dog_id}/dose-guidance?window_hours=24").json()
+    assert body_24h["signal"] == "reduce_indicated"
+
+
+def test_dose_guidance_response_always_includes_not_medical_advice_disclaimer(client):
+    dog_id = _make_dog(client)
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert "not veterinary advice" in body["not_medical_advice"].lower()
+
+
+def test_prescribed_dose_rejects_invalid_frequency(client):
+    dog_id = _make_dog(client)
+    resp = client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "weekly"}
+    )
+    assert resp.status_code == 422
+
+
+def test_prescribed_dose_history_keeps_old_entries_but_only_one_active(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose",
+        json={"dose_iu": 8.0, "frequency": "once_daily", "prescribing_note": "initial"},
+    )
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose",
+        json={"dose_iu": 7.0, "frequency": "twice_daily", "prescribing_note": "reduced"},
+    )
+    history = client.get(f"/dogs/{dog_id}/prescribed-dose/history").json()
+    assert len(history) == 2
+    active_flags = [row["is_active"] for row in history]
+    assert active_flags.count(True) == 1
+
+    current = client.get(f"/dogs/{dog_id}/prescribed-dose/current").json()
+    assert current["dose_iu"] == 7.0
+    assert current["frequency"] == "twice_daily"
+
+
+def test_dose_guidance_404_for_missing_dog(client):
+    assert client.get("/dogs/9999/dose-guidance").status_code == 404
+    assert client.get("/dogs/9999/prescribed-dose/current").status_code == 404
+    assert client.get("/dogs/9999/prescribed-dose/history").status_code == 404
+    assert (
+        client.post(
+            "/dogs/9999/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+        ).status_code
+        == 404
+    )

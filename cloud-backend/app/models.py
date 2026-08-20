@@ -42,6 +42,29 @@ class Dog(Base):
     )
     alerts: Mapped[list["VelocityAlert"]] = relationship(back_populates="dog")
     feeding_events: Mapped[list["FeedingEvent"]] = relationship(back_populates="dog")
+    prescribed_doses: Mapped[list["PrescribedDose"]] = relationship(back_populates="dog")
+
+
+class PrescribedDose(Base):
+    """The dog's current insulin dose AS PRESCRIBED BY A VET — entered by the
+    owner, never computed by this app. This is the required baseline the dose
+    guidance formula (app/dose_guidance.py) reasons *from*; the app only ever
+    shows what a published formula implies as a *change* from this number, it
+    never originates a dose on its own. History is kept (is_active flag, same
+    pattern as CalibrationCoefficient) since prescriptions change over time."""
+
+    __tablename__ = "prescribed_doses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    dog_id: Mapped[int] = mapped_column(ForeignKey("dogs.id"), nullable=False, index=True)
+    dose_iu: Mapped[float] = mapped_column(Float, nullable=False)
+    frequency: Mapped[str] = mapped_column(String, nullable=False)  # "once_daily" | "twice_daily"
+    insulin_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    prescribing_note: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+
+    dog: Mapped["Dog"] = relationship(back_populates="prescribed_doses")
 
 
 class CalibrationCoefficient(Base):

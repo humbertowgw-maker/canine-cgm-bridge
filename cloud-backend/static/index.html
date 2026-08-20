@@ -411,7 +411,7 @@
 
   <section class="panel">
     <p class="panel-title">How vets read a glucose curve</p>
-    <p class="empty-note" style="margin:0 0 14px;">Reference only — this app does not calculate or recommend an insulin dose for your dog. This explains the general method vets use so a curve on the chart above means something to you. Always follow your own vet's actual prescribed plan.</p>
+    <p class="empty-note" style="margin:0 0 14px;">Reference only — explains the general method vets use so a curve on the chart above means something to you. Always follow your own vet's actual prescribed plan. (This app can apply the published thresholds below to your dog's actual data — see "Insulin Dose Guidance" below — but it never outputs a suggested dose number; see that panel for exactly what it does and doesn't do.)</p>
 
     <div style="display:grid; gap:14px;">
       <div>
@@ -431,6 +431,53 @@
       </div>
       <div style="font-size:12.5px; color:var(--ink-faint, #7c8994);">
         Starting doses are insulin-type-specific and vary by product and dog — there's no single universal number, which is exactly why this stays a reference panel rather than a calculator. General veterinary references: Cornell Riney Canine Health Center, Merck Animal Health's Vetsulin canine dosing &amp; Somogyi effect pages, ADW Diabetes glucose-curve interpretation guide.
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title">Insulin Dose Guidance <span style="font-weight:400; color:var(--ink-faint,#7c8994); font-size:13px;">— Formula Reference</span></p>
+    <p class="empty-note" style="margin:0 0 12px;">Applies the published thresholds above to this dog's actual recent nadir. <strong>It never outputs a suggested dose number.</strong> It only ever states one of a small fixed set of signals (reduce indicated / consider / in target / elevated with no standard formula) plus the cited logic behind that signal, reasoned from your vet's actual prescribed dose as the required baseline — the app never originates a dose on its own.</p>
+
+    <div style="margin-bottom:16px;">
+      <p style="font-size:13px; font-weight:600; margin:0 0 8px;">Current prescribed dose (enter your vet's actual prescription)</p>
+      <form id="dose-form" class="cal-form">
+        <label>Dose (IU)
+          <input type="number" step="0.1" id="dose-iu" required />
+        </label>
+        <label>Frequency
+          <select id="dose-frequency">
+            <option value="once_daily">Once daily</option>
+            <option value="twice_daily">Twice daily</option>
+          </select>
+        </label>
+        <label>Insulin type (optional)
+          <input type="text" id="dose-insulin-type" placeholder="e.g. Vetsulin" />
+        </label>
+        <label>Note (optional)
+          <input type="text" id="dose-note" placeholder="e.g. per Dr. Smith, 8/20/2026" />
+        </label>
+        <button type="submit">Save</button>
+        <span id="dose-form-status"></span>
+      </form>
+      <p id="dose-current-display" class="empty-note" style="margin:8px 0 0;"></p>
+    </div>
+
+    <div style="border-top:1px solid var(--line); padding-top:14px;">
+      <label style="display:flex; align-items:flex-start; gap:8px; font-size:13.5px; cursor:pointer;">
+        <input type="checkbox" id="dose-ack-checkbox" style="margin-top:3px;" />
+        <span>I understand this is a formula reference, not veterinary advice or a dosing recommendation for my dog, and I will confirm any dose change with my veterinarian before administering it.</span>
+      </label>
+
+      <div id="dose-guidance-display" style="display:none; margin-top:14px;">
+        <div id="dose-signal-banner" style="padding:12px 16px; border-radius:8px; margin-bottom:10px;">
+          <strong id="dose-signal-label"></strong>
+        </div>
+        <p id="dose-formula-citation" style="font-size:13.5px; color:var(--ink-muted,#4e5d68); margin:0 0 8px;"></p>
+        <p id="dose-nadir-detail" style="font-size:13px; color:var(--ink-faint,#7c8994); margin:0 0 10px;"></p>
+        <p style="font-size:12.5px; color:var(--ink-faint,#7c8994); border-top:1px dashed var(--line); padding-top:8px; margin:0 0 8px;"><strong>Somogyi note:</strong> <span id="dose-somogyi-text"></span></p>
+        <p style="font-size:11.5px; color:var(--ink-faint,#7c8994); font-style:italic; margin:0;" id="dose-disclaimer-text"></p>
+        <button type="button" id="dose-refresh-btn" style="margin-top:10px;">Refresh guidance</button>
       </div>
     </div>
   </section>
@@ -1045,6 +1092,99 @@
       console.error("Calibration submit failed:", err);
     }
   });
+
+  // ---- Insulin dose guidance: formula reference, never a recommendation ----
+  // See app/dose_guidance.py's module docstring for the full rationale behind
+  // every design choice here (no baseline = refuse; asymmetric thresholds;
+  // no numeric suggestion ever for the "elevated" case).
+
+  const doseForm = document.getElementById("dose-form");
+  const doseFormStatus = document.getElementById("dose-form-status");
+  const doseCurrentDisplay = document.getElementById("dose-current-display");
+  const doseAckCheckbox = document.getElementById("dose-ack-checkbox");
+  const doseGuidanceDisplay = document.getElementById("dose-guidance-display");
+  const doseSignalBanner = document.getElementById("dose-signal-banner");
+  const doseSignalLabel = document.getElementById("dose-signal-label");
+
+  const DOSE_SIGNAL_STYLE = {
+    reduce_indicated: { bg: "#3a1414", fg: "#ff8a8a", label: "⚠ Reduce indicated (nadir below 80 mg/dL)" },
+    reduce_consider: { bg: "#3a2c14", fg: "#f0b95c", label: "⚠ Consider reducing (nadir 80–100 mg/dL)" },
+    in_target: { bg: "#123a20", fg: "#6fdb95", label: "✓ Within target band" },
+    elevated_no_formula: { bg: "#2a2a14", fg: "#e0d060", label: "Elevated — no standard formula to raise a dose" },
+    no_baseline_dose: { bg: "#1e1e1e", fg: "#9aa4ab", label: "No prescribed dose on file" },
+    insufficient_data: { bg: "#1e1e1e", fg: "#9aa4ab", label: "Not enough recent readings" },
+  };
+
+  async function refreshCurrentDose() {
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) return;
+    try {
+      const dose = await fetchJSON(`/dogs/${dogId}/prescribed-dose/current`);
+      doseCurrentDisplay.textContent =
+        `Current: ${dose.dose_iu} IU, ${dose.frequency.replace("_", " ")}` +
+        (dose.insulin_type ? ` (${dose.insulin_type})` : "") +
+        (dose.prescribing_note ? ` — ${dose.prescribing_note}` : "");
+    } catch (err) {
+      doseCurrentDisplay.textContent = "No prescribed dose on file yet.";
+    }
+  }
+
+  async function refreshDoseGuidance() {
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1 || !doseAckCheckbox.checked) {
+      doseGuidanceDisplay.style.display = "none";
+      return;
+    }
+    try {
+      const g = await fetchJSON(`/dogs/${dogId}/dose-guidance`);
+      const style = DOSE_SIGNAL_STYLE[g.signal] || DOSE_SIGNAL_STYLE.insufficient_data;
+      doseSignalBanner.style.background = style.bg;
+      doseSignalLabel.style.color = style.fg;
+      doseSignalLabel.textContent = style.label;
+      document.getElementById("dose-formula-citation").textContent = g.formula_citation;
+      document.getElementById("dose-nadir-detail").textContent = g.nadir_mg_dl != null
+        ? `Nadir over the last ${g.window_hours}h: ${g.nadir_mg_dl.toFixed(1)} mg/dL at ${formatTime(g.nadir_timestamp)}. Current prescribed dose: ${g.current_dose_iu ?? "—"} IU ${g.current_frequency ? g.current_frequency.replace("_", " ") : ""}.`
+        : (g.current_dose_iu != null ? `Current prescribed dose: ${g.current_dose_iu} IU.` : "");
+      document.getElementById("dose-somogyi-text").textContent = g.somogyi_caveat;
+      document.getElementById("dose-disclaimer-text").textContent = g.not_medical_advice;
+      doseGuidanceDisplay.style.display = "block";
+    } catch (err) {
+      doseGuidanceDisplay.style.display = "none";
+      console.error("Dose guidance fetch failed:", err);
+    }
+  }
+
+  doseForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault();
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) {
+      doseFormStatus.textContent = "Pick a dog first.";
+      return;
+    }
+    const doseIu = parseFloat(document.getElementById("dose-iu").value);
+    const frequency = document.getElementById("dose-frequency").value;
+    const insulinType = document.getElementById("dose-insulin-type").value || null;
+    const note = document.getElementById("dose-note").value || null;
+
+    doseFormStatus.textContent = "Saving…";
+    try {
+      await postJSON(`/dogs/${dogId}/prescribed-dose`, {
+        dose_iu: doseIu, frequency, insulin_type: insulinType, prescribing_note: note,
+      });
+      doseFormStatus.textContent = "Saved.";
+      doseForm.reset();
+      await refreshCurrentDose();
+      await refreshDoseGuidance();
+    } catch (err) {
+      doseFormStatus.textContent = "Failed — check the dog id and dose value.";
+      console.error("Prescribed dose submit failed:", err);
+    }
+  });
+
+  doseAckCheckbox.addEventListener("change", refreshDoseGuidance);
+  document.getElementById("dose-refresh-btn").addEventListener("click", refreshDoseGuidance);
+  dogIdInput.addEventListener("change", () => { refreshCurrentDose(); refreshDoseGuidance(); });
+  refreshCurrentDose();
 
   startPolling();
 })();
