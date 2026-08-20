@@ -66,4 +66,20 @@ menu "Canine CGM Hardware Bridge Configuration"
             POST /readings/device call gets rejected with 401. Same
             always-defined reasoning as CGM_CLOUD_BACKEND_URL above.
 
+    config CGM_ENABLE_GS1_SENSOR
+        bool "Enable tier-4 Sibionics GS1 direct-BLE sensor client"
+        default n
+        help
+            Scans for and connects to a nearby Sibionics GS1 CGM sensor
+            (GATT service 0000ff30-...-34fb), runs its RC4-encrypted
+            auth/time/activation handshake, and posts each real-time
+            glucose reading straight to cloud-backend's POST
+            /readings/device with source "gs1_direct_ble" — no delay,
+            unlike tier 3's Stelo/HealthKit path. Protocol transcribed
+            from Juggluco's open-source implementation (see
+            gs1_protocol.h for exact citations); untested against real
+            GS1 hardware. Do NOT enable alongside CGM_ENABLE_BLE_GLUCOMETER
+            in the same build — NimBLE supports only one host, and a
+            physical collar runs one tier at a time.
+
 endmenu

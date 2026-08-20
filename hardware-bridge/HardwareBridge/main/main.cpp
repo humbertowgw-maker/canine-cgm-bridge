@@ -24,6 +24,10 @@
 #include "ble_glucose_client.h"
 #endif
 
+#if CONFIG_CGM_ENABLE_GS1_SENSOR
+#include "gs1_sensor_client.h"
+#endif
+
 static const char *TAG = "main";
 
 // STEP 2 PLACEHOLDER — remove once Step 3 wires in real Stelo BLE reads.
@@ -48,6 +52,9 @@ extern "C" void app_main(void) {
 #if CONFIG_CGM_ENABLE_BLE_GLUCOMETER
     ESP_LOGI(TAG, "starting tier-2 BLE glucometer client (Glucose Service 0x1808)");
     ble_glucose_client_start();
+#elif CONFIG_CGM_ENABLE_GS1_SENSOR
+    ESP_LOGI(TAG, "starting tier-4 Sibionics GS1 direct-BLE sensor client");
+    gs1_sensor_client_start();
 #endif
 
     ESP_LOGI(TAG, "starting debug telemetry loop: dog_id=%d, every %ds, target=%s",
