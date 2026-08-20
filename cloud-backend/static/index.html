@@ -333,6 +333,34 @@
   </section>
 
   <section class="panel">
+    <p class="panel-title">Log from a photo</p>
+    <p class="empty-note" style="margin:0 0 12px;">Take or upload a photo of a glucometer/CGM display — a local vision model (no cloud, no per-call cost) reads the value and time. Always review before logging; it can misread a digit.</p>
+    <form id="photo-form" class="cal-form">
+      <label>Photo
+        <input type="file" id="photo-input" accept="image/*" capture="environment" required />
+      </label>
+      <button type="submit" id="photo-extract-btn">Extract reading</button>
+      <span id="photo-extract-status"></span>
+    </form>
+    <div id="photo-preview" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+      <p id="photo-warning" class="empty-note" style="display:none; color:var(--status-warning, #c9862b);"></p>
+      <div class="cal-form" style="align-items:flex-end;">
+        <label>Glucose (mg/dL) — review this
+          <input type="number" step="0.1" id="photo-glucose" />
+        </label>
+        <label>Timestamp — review this
+          <input type="datetime-local" id="photo-timestamp" />
+        </label>
+        <label>Note (optional)
+          <input type="text" id="photo-note" placeholder="e.g. from photo" />
+        </label>
+        <button type="button" id="photo-confirm-btn">Confirm &amp; log</button>
+        <span id="photo-confirm-status"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
     <p class="panel-title">Log a feeding</p>
     <form id="feeding-form" class="cal-form">
       <label>Timestamp (blank = now)
@@ -379,6 +407,32 @@
       <tbody></tbody>
     </table>
     <p class="empty-note" id="alerts-empty" style="display:none;">No alerts yet.</p>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title">How vets read a glucose curve</p>
+    <p class="empty-note" style="margin:0 0 14px;">Reference only — this app does not calculate or recommend an insulin dose for your dog. This explains the general method vets use so a curve on the chart above means something to you. Always follow your own vet's actual prescribed plan.</p>
+
+    <div style="display:grid; gap:14px;">
+      <div>
+        <strong>The curve itself.</strong> A full glucose curve is usually taken every 1–2 hours over 12–24 hours, timed around an insulin dose and meal. From it, a vet reads off three things: the <em>nadir</em> (lowest point of the day — the single most important number), the overall range, and how long the insulin's effect lasts before glucose rises again.
+      </div>
+      <div>
+        <strong>General target band.</strong> Most sources put an acceptable range at roughly 100–250 mg/dL for most of the day, with a target nadir around 100–150 mg/dL. A nadir under 100 may call for a lower dose; a nadir under 80 is a hard signal to reduce the dose, regardless of what the rest of the curve looks like.
+      </div>
+      <div>
+        <strong>The trap: a high reading doesn't always mean "raise the dose."</strong> If the nadir is already low, the dose can't be safely raised even if other readings that day look high — doing so risks pushing the nadir into dangerous territory. This is exactly the shape of curve seen in <strong>Somogyi rebound</strong>: a dose that's already too high drives glucose down too far, triggering a hormonal rebound that can spike glucose to 400–800 mg/dL — and that rebound can persist for up to <em>three days</em>. Reacting to the high rebound reading by raising the dose further is the classic mistake this causes, and it can escalate the problem rather than fix it.
+      </div>
+      <div>
+        <strong>Switching frequency, not just dose.</strong> If once-daily dosing doesn't hold long enough, vets often move to twice-daily dosing at roughly <strong>25% less per dose</strong> than the once-daily amount that gave an acceptable nadir (e.g. 10 IU once daily → 7 IU twice daily) — a frequency change, not a random new number.
+      </div>
+      <div>
+        <strong>Fructosamine is a complement, not a substitute.</strong> It reflects average glucose over roughly the prior 2–4 weeks (sources vary on the exact window) and helps flag whether a single curve day was unusually high or low — but it can't reveal a Somogyi rebound or a true nadir the way a real curve can, so it doesn't replace one.
+      </div>
+      <div style="font-size:12.5px; color:var(--ink-faint, #7c8994);">
+        Starting doses are insulin-type-specific and vary by product and dog — there's no single universal number, which is exactly why this stays a reference panel rather than a calculator. General veterinary references: Cornell Riney Canine Health Center, Merck Animal Health's Vetsulin canine dosing &amp; Somogyi effect pages, ADW Diabetes glucose-curve interpretation guide.
+      </div>
+    </div>
   </section>
 </main>
 
@@ -846,6 +900,91 @@
     } catch (err) {
       manualStatus.textContent = "Failed — check the dog id, glucose value, and API key.";
       console.error("Manual reading submit failed:", err);
+    }
+  });
+
+  const photoForm = document.getElementById("photo-form");
+  const photoStatus = document.getElementById("photo-extract-status");
+  const photoPreview = document.getElementById("photo-preview");
+  const photoWarning = document.getElementById("photo-warning");
+  const photoGlucoseInput = document.getElementById("photo-glucose");
+  const photoTimestampInput = document.getElementById("photo-timestamp");
+  const photoConfirmStatus = document.getElementById("photo-confirm-status");
+
+  function toDatetimeLocalValue(date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  photoForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault();
+    const fileInput = document.getElementById("photo-input");
+    const file = fileInput.files[0];
+    if (!file) {
+      photoStatus.textContent = "Choose a photo first.";
+      return;
+    }
+
+    photoStatus.textContent = "Reading photo locally…";
+    photoPreview.style.display = "none";
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    try {
+      const res = await fetch(`${CLOUD_BACKEND_URL}/readings/photo-extract`, {
+        method: "POST",
+        headers: { "X-API-Key": apiKeyInput.value },
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`photo-extract -> ${res.status}`);
+      const extracted = await res.json();
+
+      photoGlucoseInput.value = extracted.glucose_mg_dl ?? "";
+      photoTimestampInput.value = extracted.parsed_timestamp
+        ? toDatetimeLocalValue(new Date(extracted.parsed_timestamp))
+        : toDatetimeLocalValue(new Date());
+
+      if (extracted.warning) {
+        photoWarning.textContent = `⚠ ${extracted.warning}`;
+        photoWarning.style.display = "block";
+      } else {
+        photoWarning.style.display = "none";
+      }
+
+      photoPreview.style.display = "block";
+      photoStatus.textContent = "Review the extracted value below before logging.";
+    } catch (err) {
+      photoStatus.textContent = "Extraction failed — check the API key, or enter the reading manually above.";
+      console.error("Photo extract failed:", err);
+    }
+  });
+
+  document.getElementById("photo-confirm-btn").addEventListener("click", async () => {
+    const dogId = parseInt(dogIdInput.value, 10);
+    if (!dogId || dogId < 1) {
+      photoConfirmStatus.textContent = "Pick a dog first.";
+      return;
+    }
+    const glucose = parseFloat(photoGlucoseInput.value);
+    if (!glucose) {
+      photoConfirmStatus.textContent = "Enter a glucose value.";
+      return;
+    }
+    const tsInput = photoTimestampInput.value;
+    const timestamp = tsInput ? new Date(tsInput).toISOString() : new Date().toISOString();
+    const note = document.getElementById("photo-note").value || "from photo";
+
+    photoConfirmStatus.textContent = "Logging…";
+    try {
+      await postJSON("/readings/manual", { dog_id: dogId, timestamp, glucose_mg_dl: glucose, note });
+      photoConfirmStatus.textContent = `Logged ${glucose.toFixed(1)} mg/dL.`;
+      photoForm.reset();
+      photoPreview.style.display = "none";
+      photoStatus.textContent = "";
+      refresh();
+    } catch (err) {
+      photoConfirmStatus.textContent = "Failed — check the dog id and API key.";
+      console.error("Photo-confirmed reading submit failed:", err);
     }
   });
 

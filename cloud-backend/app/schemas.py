@@ -112,6 +112,28 @@ class ReadingOut(BaseModel):
     created_at: datetime
 
 
+# ---- Photo-capture extraction ----
+
+
+class PhotoExtractResponse(BaseModel):
+    """Best-effort extraction from a photo of a glucometer/CGM display, via a
+    local vision model. Never auto-creates a reading — the caller must review
+    (and correct, if needed) glucose_mg_dl/timestamp before separately posting
+    to /readings/manual, since a vision model can misread a digit and this
+    number goes straight into a hypo-drop alert engine."""
+
+    glucose_mg_dl: float | None
+    datetime_text: str | None = Field(
+        default=None, description="Date/time text as read from the photo, verbatim"
+    )
+    parsed_timestamp: datetime | None = Field(
+        default=None, description="Best-effort parse of datetime_text; null if unparseable"
+    )
+    warning: str | None = Field(
+        default=None, description="Set when extraction was partial/uncertain — always re-check"
+    )
+
+
 # ---- Feeding events ----
 
 

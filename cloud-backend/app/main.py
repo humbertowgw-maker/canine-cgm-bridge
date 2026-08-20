@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import init_db
 from app.deps import require_api_key
-from app.routers import alerts, calibration, dogs, feedings, readings
+from app.routers import alerts, calibration, dogs, feedings, photo_capture, readings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -33,5 +33,6 @@ app.include_router(readings.router, dependencies=[Depends(require_api_key)])
 app.include_router(calibration.router, dependencies=[Depends(require_api_key)])
 app.include_router(alerts.router, dependencies=[Depends(require_api_key)])
 app.include_router(feedings.router, dependencies=[Depends(require_api_key)])
+app.include_router(photo_capture.router, dependencies=[Depends(require_api_key)])
 
 app.mount("/dashboard", StaticFiles(directory=STATIC_DIR, html=True), name="dashboard")

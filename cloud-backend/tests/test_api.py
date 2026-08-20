@@ -371,3 +371,99 @@ def test_dogs_route_rejects_requests_without_a_valid_api_key(db_engine, monkeypa
             assert c.get("/dogs", headers={"X-API-Key": "the-real-secret"}).status_code == 200
     finally:
         app.dependency_overrides.clear()
+
+
+def _mock_ollama_response(monkeypatch, response_text, raise_connect_error=False):
+    """Fakes the local Ollama /api/generate call so photo-extract tests are
+    deterministic and don't require a real Ollama instance running."""
+    import httpx
+
+    class FakeResponse:
+        def __init__(self, text):
+            self._text = text
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"response": self._text}
+
+    async def fake_post(self, url, json=None, **kwargs):
+        if raise_connect_error:
+            raise httpx.ConnectError("connection refused", request=httpx.Request("POST", url))
+        return FakeResponse(response_text)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+
+def test_photo_extract_parses_bare_json_response(client, monkeypatch):
+    _mock_ollama_response(
+        monkeypatch, '{"glucose_mg_dl": 142, "datetime_text": "Aug 20, 2026 7:42 PM"}'
+    )
+    resp = client.post(
+        "/readings/photo-extract",
+        files={"photo": ("reading.png", b"fake-image-bytes", "image/png")},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["glucose_mg_dl"] == 142
+    assert body["datetime_text"] == "Aug 20, 2026 7:42 PM"
+    assert body["parsed_timestamp"] is not None
+    assert body["warning"] is None
+
+
+def test_photo_extract_parses_markdown_fenced_json(client, monkeypatch):
+    _mock_ollama_response(
+        monkeypatch,
+        '```json\n{"glucose_mg_dl": 98, "datetime_text": "Aug 20, 2026 8:15 AM"}\n```',
+    )
+    resp = client.post(
+        "/readings/photo-extract",
+        files={"photo": ("reading.png", b"fake-image-bytes", "image/png")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["glucose_mg_dl"] == 98
+
+
+def test_photo_extract_flags_implausible_value(client, monkeypatch):
+    _mock_ollama_response(
+        monkeypatch, '{"glucose_mg_dl": 9999, "datetime_text": "Aug 20, 2026 8:15 AM"}'
+    )
+    resp = client.post(
+        "/readings/photo-extract",
+        files={"photo": ("reading.png", b"fake-image-bytes", "image/png")},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["glucose_mg_dl"] == 9999
+    assert "outside a plausible range" in body["warning"]
+
+
+def test_photo_extract_handles_unparseable_response(client, monkeypatch):
+    _mock_ollama_response(monkeypatch, "I couldn't read anything in this image, sorry.")
+    resp = client.post(
+        "/readings/photo-extract",
+        files={"photo": ("reading.png", b"fake-image-bytes", "image/png")},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["glucose_mg_dl"] is None
+    assert body["warning"] is not None
+
+
+def test_photo_extract_503_when_ollama_unreachable(client, monkeypatch):
+    _mock_ollama_response(monkeypatch, "", raise_connect_error=True)
+    resp = client.post(
+        "/readings/photo-extract",
+        files={"photo": ("reading.png", b"fake-image-bytes", "image/png")},
+    )
+    assert resp.status_code == 503
+    assert "ollama serve" in resp.json()["detail"]
+
+
+def test_photo_extract_rejects_empty_upload(client, monkeypatch):
+    resp = client.post(
+        "/readings/photo-extract",
+        files={"photo": ("empty.png", b"", "image/png")},
+    )
+    assert resp.status_code == 400
