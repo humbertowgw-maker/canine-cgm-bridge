@@ -164,6 +164,27 @@ class DoseGuidanceOut(BaseModel):
             "your veterinarian before administering it."
         )
     )
+    requires_fresh_acknowledgment: bool = Field(
+        description=(
+            "True when this signal hasn't been actively acknowledged yet — either "
+            "no acknowledgment exists, or the last one was for a different signal. "
+            "The caller must re-gate on a fresh comprehension check, not reuse an "
+            "old acknowledgment, when this is true."
+        )
+    )
+
+
+class DoseGuidanceAckCreate(BaseModel):
+    signal: str = Field(description="The exact signal being acknowledged, e.g. 'reduce_indicated'")
+
+
+class DoseGuidanceAckOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    dog_id: int
+    signal: str
+    created_at: datetime
 
 
 # ---- Photo-capture extraction ----

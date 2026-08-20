@@ -9,6 +9,10 @@ router = APIRouter(prefix="/dogs/{dog_id}", tags=["dose-guidance"])
 
 VALID_FREQUENCIES = {"once_daily", "twice_daily"}
 
+# Signals with no actionable content — nothing to gate behind a comprehension
+# check, since there's no formula-derived guidance being shown yet.
+UNGATED_SIGNALS = {"no_baseline_dose", "insufficient_data"}
+
 
 @router.post(
     "/prescribed-dose", response_model=schemas.PrescribedDoseOut, status_code=201
@@ -67,6 +71,13 @@ def get_dose_guidance(
         raise HTTPException(status_code=404, detail="Dog not found")
 
     guidance = compute_dose_guidance(db, dog_id, window_hours=window_hours)
+
+    if guidance.signal in UNGATED_SIGNALS:
+        requires_fresh_ack = False
+    else:
+        latest_ack = crud.get_latest_dose_guidance_ack(db, dog_id)
+        requires_fresh_ack = latest_ack is None or latest_ack.signal != guidance.signal
+
     return schemas.DoseGuidanceOut(
         dog_id=guidance.dog_id,
         signal=guidance.signal,
@@ -78,4 +89,21 @@ def get_dose_guidance(
         nadir_timestamp=guidance.nadir_timestamp,
         formula_citation=guidance.formula_citation,
         somogyi_caveat=guidance.somogyi_caveat,
+        requires_fresh_acknowledgment=requires_fresh_ack,
     )
+
+
+@router.post(
+    "/dose-guidance-ack", response_model=schemas.DoseGuidanceAckOut, status_code=201
+)
+def acknowledge_dose_guidance(
+    dog_id: int, ack_in: schemas.DoseGuidanceAckCreate, db: Session = Depends(get_db)
+):
+    """Records that a human actively passed the comprehension check for a
+    specific signal — an audit trail, not just a UI checkbox state. Re-running
+    /dose-guidance afterward will report requires_fresh_acknowledgment=False
+    for this exact signal until it changes to something else."""
+    dog = crud.get_dog(db, dog_id)
+    if dog is None:
+        raise HTTPException(status_code=404, detail="Dog not found")
+    return crud.create_dose_guidance_ack(db, dog_id=dog_id, signal=ack_in.signal)

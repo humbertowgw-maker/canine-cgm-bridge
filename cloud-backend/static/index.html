@@ -464,10 +464,24 @@
     </div>
 
     <div style="border-top:1px solid var(--line); padding-top:14px;">
-      <label style="display:flex; align-items:flex-start; gap:8px; font-size:13.5px; cursor:pointer;">
-        <input type="checkbox" id="dose-ack-checkbox" style="margin-top:3px;" />
-        <span>I understand this is a formula reference, not veterinary advice or a dosing recommendation for my dog, and I will confirm any dose change with my veterinarian before administering it.</span>
-      </label>
+      <button type="button" id="dose-check-btn">Check dose guidance</button>
+      <span id="dose-check-status" style="font-size:12.5px; color:var(--ink-faint,#7c8994); margin-left:8px;"></span>
+
+      <div id="dose-ack-gate" style="display:none; margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:8px;">
+        <p style="font-size:13px; font-weight:600; margin:0 0 10px;">Before this signal is shown, confirm you understand:</p>
+        <div style="margin-bottom:12px;">
+          <p style="font-size:13px; margin:0 0 6px;">1. What does this panel do?</p>
+          <label style="display:block; font-size:13px; margin-bottom:4px; cursor:pointer;"><input type="radio" name="dose-q1" value="wrong" /> Tells me the exact dose to give my dog</label>
+          <label style="display:block; font-size:13px; cursor:pointer;"><input type="radio" name="dose-q1" value="correct" /> Shows a formula reference to discuss with my vet</label>
+        </div>
+        <div style="margin-bottom:12px;">
+          <p style="font-size:13px; margin:0 0 6px;">2. If a reading looks high, what should I do?</p>
+          <label style="display:block; font-size:13px; margin-bottom:4px; cursor:pointer;"><input type="radio" name="dose-q2" value="wrong" /> Immediately increase the insulin dose</label>
+          <label style="display:block; font-size:13px; cursor:pointer;"><input type="radio" name="dose-q2" value="correct" /> Talk to my vet &mdash; a high reading can also mean Somogyi rebound from too much insulin</label>
+        </div>
+        <button type="button" id="dose-ack-confirm-btn">Confirm &amp; view guidance</button>
+        <span id="dose-ack-gate-status" style="font-size:12.5px; color:var(--ink-faint,#7c8994); margin-left:8px;"></span>
+      </div>
 
       <div id="dose-guidance-display" style="display:none; margin-top:14px;">
         <div id="dose-signal-banner" style="padding:12px 16px; border-radius:8px; margin-bottom:10px;">
@@ -1101,7 +1115,10 @@
   const doseForm = document.getElementById("dose-form");
   const doseFormStatus = document.getElementById("dose-form-status");
   const doseCurrentDisplay = document.getElementById("dose-current-display");
-  const doseAckCheckbox = document.getElementById("dose-ack-checkbox");
+  const doseCheckBtn = document.getElementById("dose-check-btn");
+  const doseCheckStatus = document.getElementById("dose-check-status");
+  const doseAckGate = document.getElementById("dose-ack-gate");
+  const doseAckGateStatus = document.getElementById("dose-ack-gate-status");
   const doseGuidanceDisplay = document.getElementById("dose-guidance-display");
   const doseSignalBanner = document.getElementById("dose-signal-banner");
   const doseSignalLabel = document.getElementById("dose-signal-label");
@@ -1114,6 +1131,11 @@
     no_baseline_dose: { bg: "#1e1e1e", fg: "#9aa4ab", label: "No prescribed dose on file" },
     insufficient_data: { bg: "#1e1e1e", fg: "#9aa4ab", label: "Not enough recent readings" },
   };
+
+  // The guidance fetched but not yet revealed, while the comprehension gate
+  // is showing — deliberately module-scoped state, not passed through the
+  // DOM, so there's exactly one source of truth for "what are we about to reveal."
+  let pendingGuidance = null;
 
   async function refreshCurrentDose() {
     const dogId = parseInt(dogIdInput.value, 10);
@@ -1129,30 +1151,73 @@
     }
   }
 
-  async function refreshDoseGuidance() {
+  function renderDoseGuidance(g) {
+    const style = DOSE_SIGNAL_STYLE[g.signal] || DOSE_SIGNAL_STYLE.insufficient_data;
+    doseSignalBanner.style.background = style.bg;
+    doseSignalLabel.style.color = style.fg;
+    doseSignalLabel.textContent = style.label;
+    document.getElementById("dose-formula-citation").textContent = g.formula_citation;
+    document.getElementById("dose-nadir-detail").textContent = g.nadir_mg_dl != null
+      ? `Nadir over the last ${g.window_hours}h: ${g.nadir_mg_dl.toFixed(1)} mg/dL at ${formatTime(g.nadir_timestamp)}. Current prescribed dose: ${g.current_dose_iu ?? "—"} IU ${g.current_frequency ? g.current_frequency.replace("_", " ") : ""}.`
+      : (g.current_dose_iu != null ? `Current prescribed dose: ${g.current_dose_iu} IU.` : "");
+    document.getElementById("dose-somogyi-text").textContent = g.somogyi_caveat;
+    document.getElementById("dose-disclaimer-text").textContent = g.not_medical_advice;
+    doseAckGate.style.display = "none";
+    doseGuidanceDisplay.style.display = "block";
+  }
+
+  async function checkDoseGuidance() {
     const dogId = parseInt(dogIdInput.value, 10);
-    if (!dogId || dogId < 1 || !doseAckCheckbox.checked) {
-      doseGuidanceDisplay.style.display = "none";
+    if (!dogId || dogId < 1) {
+      doseCheckStatus.textContent = "Pick a dog first.";
       return;
     }
+    doseGuidanceDisplay.style.display = "none";
+    doseAckGate.style.display = "none";
+    doseCheckStatus.textContent = "Checking…";
     try {
       const g = await fetchJSON(`/dogs/${dogId}/dose-guidance`);
-      const style = DOSE_SIGNAL_STYLE[g.signal] || DOSE_SIGNAL_STYLE.insufficient_data;
-      doseSignalBanner.style.background = style.bg;
-      doseSignalLabel.style.color = style.fg;
-      doseSignalLabel.textContent = style.label;
-      document.getElementById("dose-formula-citation").textContent = g.formula_citation;
-      document.getElementById("dose-nadir-detail").textContent = g.nadir_mg_dl != null
-        ? `Nadir over the last ${g.window_hours}h: ${g.nadir_mg_dl.toFixed(1)} mg/dL at ${formatTime(g.nadir_timestamp)}. Current prescribed dose: ${g.current_dose_iu ?? "—"} IU ${g.current_frequency ? g.current_frequency.replace("_", " ") : ""}.`
-        : (g.current_dose_iu != null ? `Current prescribed dose: ${g.current_dose_iu} IU.` : "");
-      document.getElementById("dose-somogyi-text").textContent = g.somogyi_caveat;
-      document.getElementById("dose-disclaimer-text").textContent = g.not_medical_advice;
-      doseGuidanceDisplay.style.display = "block";
+      doseCheckStatus.textContent = "";
+      if (g.requires_fresh_acknowledgment) {
+        pendingGuidance = g;
+        document.querySelectorAll('#dose-ack-gate input[type=radio]').forEach((r) => (r.checked = false));
+        doseAckGateStatus.textContent = "";
+        doseAckGate.style.display = "block";
+      } else {
+        renderDoseGuidance(g);
+      }
     } catch (err) {
-      doseGuidanceDisplay.style.display = "none";
+      doseCheckStatus.textContent = "Failed to check guidance.";
       console.error("Dose guidance fetch failed:", err);
     }
   }
+
+  document.getElementById("dose-ack-confirm-btn").addEventListener("click", async () => {
+    const q1 = document.querySelector('input[name="dose-q1"]:checked');
+    const q2 = document.querySelector('input[name="dose-q2"]:checked');
+    if (!q1 || !q2) {
+      doseAckGateStatus.textContent = "Answer both questions first.";
+      return;
+    }
+    if (q1.value !== "correct" || q2.value !== "correct") {
+      doseAckGateStatus.textContent = "Not quite — re-read the questions above and try again.";
+      return;
+    }
+    if (!pendingGuidance) return;
+
+    const dogId = parseInt(dogIdInput.value, 10);
+    doseAckGateStatus.textContent = "Recording…";
+    try {
+      await postJSON(`/dogs/${dogId}/dose-guidance-ack`, { signal: pendingGuidance.signal });
+      renderDoseGuidance(pendingGuidance);
+    } catch (err) {
+      doseAckGateStatus.textContent = "Failed to record acknowledgment.";
+      console.error("Dose guidance ack failed:", err);
+    }
+  });
+
+  doseCheckBtn.addEventListener("click", checkDoseGuidance);
+  document.getElementById("dose-refresh-btn").addEventListener("click", checkDoseGuidance);
 
   doseForm.addEventListener("submit", async (evt) => {
     evt.preventDefault();
@@ -1174,16 +1239,19 @@
       doseFormStatus.textContent = "Saved.";
       doseForm.reset();
       await refreshCurrentDose();
-      await refreshDoseGuidance();
+      doseGuidanceDisplay.style.display = "none";
+      doseAckGate.style.display = "none";
     } catch (err) {
       doseFormStatus.textContent = "Failed — check the dog id and dose value.";
       console.error("Prescribed dose submit failed:", err);
     }
   });
 
-  doseAckCheckbox.addEventListener("change", refreshDoseGuidance);
-  document.getElementById("dose-refresh-btn").addEventListener("click", refreshDoseGuidance);
-  dogIdInput.addEventListener("change", () => { refreshCurrentDose(); refreshDoseGuidance(); });
+  dogIdInput.addEventListener("change", () => {
+    refreshCurrentDose();
+    doseGuidanceDisplay.style.display = "none";
+    doseAckGate.style.display = "none";
+  });
   refreshCurrentDose();
 
   startPolling();

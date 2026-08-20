@@ -618,6 +618,65 @@ def test_prescribed_dose_history_keeps_old_entries_but_only_one_active(client):
     assert current["frequency"] == "twice_daily"
 
 
+def test_dose_guidance_requires_fresh_ack_when_none_exists(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 79.0)
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "reduce_indicated"
+    assert body["requires_fresh_acknowledgment"] is True
+
+
+def test_dose_guidance_ack_clears_flag_for_same_signal(client):
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 79.0)
+    assert client.get(f"/dogs/{dog_id}/dose-guidance").json()["requires_fresh_acknowledgment"] is True
+
+    ack_resp = client.post(f"/dogs/{dog_id}/dose-guidance-ack", json={"signal": "reduce_indicated"})
+    assert ack_resp.status_code == 201
+    assert ack_resp.json()["signal"] == "reduce_indicated"
+
+    # Same signal, same underlying data -> the earlier ack still counts.
+    assert client.get(f"/dogs/{dog_id}/dose-guidance").json()["requires_fresh_acknowledgment"] is False
+
+
+def test_dose_guidance_ack_does_not_carry_over_to_a_new_signal(client):
+    """The core safety property: acknowledging one signal must NOT silently
+    cover a different, more (or less) serious signal later."""
+    dog_id = _make_dog(client)
+    client.post(
+        f"/dogs/{dog_id}/prescribed-dose", json={"dose_iu": 8.0, "frequency": "once_daily"}
+    )
+    _log_reading(client, dog_id, 125.0)  # in_target
+    assert client.get(f"/dogs/{dog_id}/dose-guidance").json()["signal"] == "in_target"
+    client.post(f"/dogs/{dog_id}/dose-guidance-ack", json={"signal": "in_target"})
+    assert client.get(f"/dogs/{dog_id}/dose-guidance").json()["requires_fresh_acknowledgment"] is False
+
+    # Now the picture changes to something more serious -- the old ack must not apply.
+    _log_reading(client, dog_id, 75.0, hours_ago=1)  # reduce_indicated becomes the nadir
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "reduce_indicated"
+    assert body["requires_fresh_acknowledgment"] is True
+
+
+def test_dose_guidance_ungated_signals_never_require_acknowledgment(client):
+    dog_id = _make_dog(client)
+    # No prescribed dose at all -> no_baseline_dose, nothing to gate.
+    body = client.get(f"/dogs/{dog_id}/dose-guidance").json()
+    assert body["signal"] == "no_baseline_dose"
+    assert body["requires_fresh_acknowledgment"] is False
+
+
+def test_dose_guidance_ack_404_for_missing_dog(client):
+    resp = client.post("/dogs/9999/dose-guidance-ack", json={"signal": "in_target"})
+    assert resp.status_code == 404
+
+
 def test_dose_guidance_404_for_missing_dog(client):
     assert client.get("/dogs/9999/dose-guidance").status_code == 404
     assert client.get("/dogs/9999/prescribed-dose/current").status_code == 404

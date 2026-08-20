@@ -67,6 +67,23 @@ class PrescribedDose(Base):
     dog: Mapped["Dog"] = relationship(back_populates="prescribed_doses")
 
 
+class DoseGuidanceAcknowledgment(Base):
+    """Audit record of a human actively confirming they understood the dose
+    guidance panel's not-a-recommendation framing — modeled on the graduated,
+    logged-consent pattern used by real open-source automated-insulin-delivery
+    projects (AndroidAPS's "Objectives" system), scaled down to fit a
+    reference panel rather than an autonomous delivery loop. Every field here
+    exists to answer "did a human actually confirm they understood this
+    specific signal, and when" if that's ever asked."""
+
+    __tablename__ = "dose_guidance_acknowledgments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    dog_id: Mapped[int] = mapped_column(ForeignKey("dogs.id"), nullable=False, index=True)
+    signal: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+
+
 class CalibrationCoefficient(Base):
     __tablename__ = "calibration_coefficients"
 

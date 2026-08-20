@@ -335,3 +335,28 @@ def get_prescribed_dose_history(
         .limit(limit)
     )
     return list(db.execute(stmt).scalars())
+
+
+# ---- Dose guidance acknowledgments (audit log) ----
+
+
+def create_dose_guidance_ack(
+    db: Session, dog_id: int, signal: str
+) -> models.DoseGuidanceAcknowledgment:
+    row = models.DoseGuidanceAcknowledgment(dog_id=dog_id, signal=signal)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def get_latest_dose_guidance_ack(
+    db: Session, dog_id: int
+) -> models.DoseGuidanceAcknowledgment | None:
+    stmt = (
+        select(models.DoseGuidanceAcknowledgment)
+        .where(models.DoseGuidanceAcknowledgment.dog_id == dog_id)
+        .order_by(models.DoseGuidanceAcknowledgment.created_at.desc())
+        .limit(1)
+    )
+    return db.execute(stmt).scalar_one_or_none()
