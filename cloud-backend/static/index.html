@@ -215,6 +215,12 @@
   .feeding-tick { stroke: var(--text-muted); stroke-width: 1.5; stroke-dasharray: 2 2; opacity: 0.6; cursor: pointer; }
   .feeding-tick:hover { opacity: 1; }
   .feeding-dot { fill: var(--text-muted); }
+  .delayed-point { fill: var(--surface-1); stroke: var(--status-warning); stroke-width: 2; cursor: pointer; }
+  .delayed-badge {
+    display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--status-warning); border: 1px solid var(--status-warning);
+    border-radius: 3px; padding: 0 4px; margin-left: 6px; vertical-align: middle;
+  }
 
   .tooltip {
     position: absolute;
@@ -440,6 +446,15 @@
     return { label: "In range", dot: "dot-good" };
   }
 
+  // Readings whose source name contains "delayed" (e.g. "stelo_healthkit_delayed",
+  // synced from Apple Health/Health Connect on Dexcom's fixed ~3h delay) are
+  // real but stale — never let one silently stand in for "the current value"
+  // anywhere in the UI. Matching on the source string itself, not a lookup
+  // table, so any future delayed-data source is caught automatically.
+  function isDelayedSource(reading) {
+    return typeof reading.source === "string" && reading.source.includes("delayed");
+  }
+
   async function refreshDogList() {
     try {
       const dogs = await fetchJSON("/dogs");
@@ -586,6 +601,20 @@
     const last = points[points.length - 1];
     svg.appendChild(el("circle", { cx: last[0], cy: last[1], r: 4, class: "glucose-end" }));
 
+    // delayed-source points (e.g. HealthKit-synced Stelo data, up to ~3h
+    // stale) get a distinct hollow ring instead of a solid dot, so a stale
+    // reading never looks visually identical to a live one on the same chart.
+    sorted.forEach((r, i) => {
+      if (!isDelayedSource(r)) return;
+      const [px, py] = points[i];
+      const ring = el("circle", { cx: px, cy: py, r: 5, class: "delayed-point" });
+      ring.addEventListener("mouseenter", (evt) => {
+        showTooltip(evt, `${r.estimated_glucose_mg_dl.toFixed(1)} mg/dL &middot; delayed (${r.source})<br>${formatTime(r.timestamp)}`);
+      });
+      ring.addEventListener("mouseleave", hideTooltip);
+      svg.appendChild(ring);
+    });
+
     // alert ticks
     alerts.forEach((a) => {
       const at = new Date(a.timestamp).getTime();
@@ -677,10 +706,16 @@
     const bgEl = document.getElementById("stat-bg");
     const bgChip = document.getElementById("stat-bg-chip");
     if (readings.length > 0 && dog) {
-      const latest = readings[0]; // newest-first
+      // readings arrive newest-first; prefer the latest LIVE reading for
+      // "current" BG so a stale HealthKit-delayed sample never gets
+      // presented as though it just happened. Only fall back to a delayed
+      // reading (clearly badged) when nothing live exists yet.
+      const latestLive = readings.find((r) => !isDelayedSource(r));
+      const latest = latestLive || readings[0];
       bgEl.innerHTML = `${latest.estimated_glucose_mg_dl.toFixed(1)}<span class="stat-unit">mg/dL</span>`;
       const status = statusForValue(latest.estimated_glucose_mg_dl, dog.target_range_low_mg_dl, dog.target_range_high_mg_dl);
-      bgChip.innerHTML = `<span class="dot ${status.dot}"></span>${status.label}`;
+      const delayedBadge = isDelayedSource(latest) ? `<span class="delayed-badge">DELAYED</span>` : "";
+      bgChip.innerHTML = `<span class="dot ${status.dot}"></span>${status.label}${delayedBadge}`;
     } else {
       bgEl.innerHTML = `—<span class="stat-unit">mg/dL</span>`;
       bgChip.innerHTML = "";
@@ -722,7 +757,8 @@
     tbody.innerHTML = "";
     readings.slice(0, 20).forEach((r) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${formatTime(r.timestamp)}</td><td>${r.estimated_glucose_mg_dl.toFixed(1)}</td>`;
+      const badge = isDelayedSource(r) ? `<span class="delayed-badge">DELAYED</span>` : "";
+      tr.innerHTML = `<td>${formatTime(r.timestamp)}${badge}</td><td>${r.estimated_glucose_mg_dl.toFixed(1)}</td>`;
       tbody.appendChild(tr);
     });
   }

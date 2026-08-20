@@ -1,0 +1,425 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0DAA6C1B2E06172342E21815 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC10D9AA00C3E3CBAAC10F26 /* ContentView.swift */; };
+		1BD20AEB569B0629CB189DF8 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93A37B5B7664310167BF8E02 /* APIClient.swift */; };
+		6C7387749C9CD41EE75F1FD0 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60E1450133BAF52AB7E3F0C /* HealthKitManager.swift */; };
+		8B1EF032C568F38009160F32 /* SteloHealthKitSyncApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAB601C587AEDAB254230EF3 /* SteloHealthKitSyncApp.swift */; };
+		C91A91CD61A599B8B78645C5 /* SyncConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B06EA885B967213A57AA350 /* SyncConfig.swift */; };
+		D130AC39F92C768D57FA8C5D /* HealthKitSyncEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C91ED0FA6275116FAF497C5 /* HealthKitSyncEndToEndTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		928C85BEE9ED13B2A8245514 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 210D16082A0BE6880946ADF8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3039F97A344C3A730E10ED4E;
+			remoteInfo = SteloHealthKitSync;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1C91ED0FA6275116FAF497C5 /* HealthKitSyncEndToEndTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSyncEndToEndTests.swift; sourceTree = "<group>"; };
+		402A8181FF4D11F3A8EB5FA3 /* SteloHealthKitSyncTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SteloHealthKitSyncTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B06EA885B967213A57AA350 /* SyncConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncConfig.swift; sourceTree = "<group>"; };
+		93A37B5B7664310167BF8E02 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		A60E1450133BAF52AB7E3F0C /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		CAAA5AAC935EB05AA5B74FE4 /* SteloHealthKitSync.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SteloHealthKitSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAB601C587AEDAB254230EF3 /* SteloHealthKitSyncApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteloHealthKitSyncApp.swift; sourceTree = "<group>"; };
+		FC10D9AA00C3E3CBAAC10F26 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FE52DCA146141920E7475387 /* SteloHealthKitSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SteloHealthKitSync.entitlements; sourceTree = "<group>"; };
+		FF7904F7760544FE2ED8E8B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		400B68ED2FF64E20E7AEFF08 = {
+			isa = PBXGroup;
+			children = (
+				A767895404E7474315F0612E /* SteloHealthKitSync */,
+				CADF564230F9A025BF527AB8 /* SteloHealthKitSyncTests */,
+				C937D0525E7DDF4A64AA6D40 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A767895404E7474315F0612E /* SteloHealthKitSync */ = {
+			isa = PBXGroup;
+			children = (
+				93A37B5B7664310167BF8E02 /* APIClient.swift */,
+				FC10D9AA00C3E3CBAAC10F26 /* ContentView.swift */,
+				A60E1450133BAF52AB7E3F0C /* HealthKitManager.swift */,
+				FF7904F7760544FE2ED8E8B6 /* Info.plist */,
+				FE52DCA146141920E7475387 /* SteloHealthKitSync.entitlements */,
+				DAB601C587AEDAB254230EF3 /* SteloHealthKitSyncApp.swift */,
+				8B06EA885B967213A57AA350 /* SyncConfig.swift */,
+			);
+			path = SteloHealthKitSync;
+			sourceTree = "<group>";
+		};
+		C937D0525E7DDF4A64AA6D40 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CAAA5AAC935EB05AA5B74FE4 /* SteloHealthKitSync.app */,
+				402A8181FF4D11F3A8EB5FA3 /* SteloHealthKitSyncTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CADF564230F9A025BF527AB8 /* SteloHealthKitSyncTests */ = {
+			isa = PBXGroup;
+			children = (
+				1C91ED0FA6275116FAF497C5 /* HealthKitSyncEndToEndTests.swift */,
+			);
+			path = SteloHealthKitSyncTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3039F97A344C3A730E10ED4E /* SteloHealthKitSync */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 93B3C8245A29B5507CE16854 /* Build configuration list for PBXNativeTarget "SteloHealthKitSync" */;
+			buildPhases = (
+				4C3E6205B335E368B3C592F7 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SteloHealthKitSync;
+			packageProductDependencies = (
+			);
+			productName = SteloHealthKitSync;
+			productReference = CAAA5AAC935EB05AA5B74FE4 /* SteloHealthKitSync.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E252BD6B40E23D9E3CBB479F /* SteloHealthKitSyncTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E132B0F26377ECA084E28533 /* Build configuration list for PBXNativeTarget "SteloHealthKitSyncTests" */;
+			buildPhases = (
+				3995952D95F02D890F2A1993 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				585C20D74B59EB4D7DDC1667 /* PBXTargetDependency */,
+			);
+			name = SteloHealthKitSyncTests;
+			packageProductDependencies = (
+			);
+			productName = SteloHealthKitSyncTests;
+			productReference = 402A8181FF4D11F3A8EB5FA3 /* SteloHealthKitSyncTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		210D16082A0BE6880946ADF8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3039F97A344C3A730E10ED4E = {
+						DevelopmentTeam = 9RYL8ZRC3U;
+						ProvisioningStyle = Automatic;
+					};
+					E252BD6B40E23D9E3CBB479F = {
+						DevelopmentTeam = 9RYL8ZRC3U;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 5F1C25550DE724CED5A0E445 /* Build configuration list for PBXProject "SteloHealthKitSync" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 400B68ED2FF64E20E7AEFF08;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C937D0525E7DDF4A64AA6D40 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3039F97A344C3A730E10ED4E /* SteloHealthKitSync */,
+				E252BD6B40E23D9E3CBB479F /* SteloHealthKitSyncTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3995952D95F02D890F2A1993 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D130AC39F92C768D57FA8C5D /* HealthKitSyncEndToEndTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C3E6205B335E368B3C592F7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1BD20AEB569B0629CB189DF8 /* APIClient.swift in Sources */,
+				0DAA6C1B2E06172342E21815 /* ContentView.swift in Sources */,
+				6C7387749C9CD41EE75F1FD0 /* HealthKitManager.swift in Sources */,
+				8B1EF032C568F38009160F32 /* SteloHealthKitSyncApp.swift in Sources */,
+				C91A91CD61A599B8B78645C5 /* SyncConfig.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		585C20D74B59EB4D7DDC1667 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3039F97A344C3A730E10ED4E /* SteloHealthKitSync */;
+			targetProxy = 928C85BEE9ED13B2A8245514 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1A36F16E8C0FA8667ECF7239 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 9RYL8ZRC3U;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		2824FB41BE7A2C73AD59771D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_ENTITLEMENTS = SteloHealthKitSync/SteloHealthKitSync.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Test host reads synthetic blood glucose samples for end-to-end sync testing.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Test host writes synthetic blood glucose samples for end-to-end sync testing.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.humbertowgw.stelohealthkitsync.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SteloHealthKitSync.app/SteloHealthKitSync";
+			};
+			name = Debug;
+		};
+		678EEF3D82067D5963B960D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 9RYL8ZRC3U;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B4F818AAF5CE45D2A396D45F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SteloHealthKitSync/SteloHealthKitSync.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = SteloHealthKitSync/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.humbertowgw.stelohealthkitsync;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DFC3F6CF6E9D37A3E4495338 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_ENTITLEMENTS = SteloHealthKitSync/SteloHealthKitSync.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Test host reads synthetic blood glucose samples for end-to-end sync testing.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Test host writes synthetic blood glucose samples for end-to-end sync testing.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.humbertowgw.stelohealthkitsync.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SteloHealthKitSync.app/SteloHealthKitSync";
+			};
+			name = Release;
+		};
+		F2D63EB4EE44A0A759C70E5C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SteloHealthKitSync/SteloHealthKitSync.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = SteloHealthKitSync/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.humbertowgw.stelohealthkitsync;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5F1C25550DE724CED5A0E445 /* Build configuration list for PBXProject "SteloHealthKitSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A36F16E8C0FA8667ECF7239 /* Debug */,
+				678EEF3D82067D5963B960D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		93B3C8245A29B5507CE16854 /* Build configuration list for PBXNativeTarget "SteloHealthKitSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2D63EB4EE44A0A759C70E5C /* Debug */,
+				B4F818AAF5CE45D2A396D45F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E132B0F26377ECA084E28533 /* Build configuration list for PBXNativeTarget "SteloHealthKitSyncTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2824FB41BE7A2C73AD59771D /* Debug */,
+				DFC3F6CF6E9D37A3E4495338 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 210D16082A0BE6880946ADF8 /* Project object */;
+}

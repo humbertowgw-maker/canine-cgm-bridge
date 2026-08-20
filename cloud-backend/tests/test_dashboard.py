@@ -44,6 +44,8 @@ def test_dashboard_serves_html(client):
     assert "/readings/manual" in body
     assert "/feedings" in body
     assert "X-API-Key" in body
+    assert "isDelayedSource" in body
+    assert "delayed-badge" in body
 
 
 def test_dashboard_redirects_without_trailing_slash(client):

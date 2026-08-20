@@ -7,8 +7,12 @@ Nightscout's cloud REST API role) but implemented from scratch in Python. The so
 prototype is in progress in `hardware-bridge/` — see that directory's own README — reusing
 an already-FDA-approved, OTC human CGM sensor (Dexcom Stelo, built on the same G7 sensor
 platform used off-label on dogs by vets) rather than engineering any new biosensor
-hardware. Stelo broadcasts BLE natively, so no separate NFC/BLE bridge hardware is needed
-either.
+hardware. **Correction (2026-08-19):** Stelo does *not* broadcast BLE natively the way
+G6 does — real protocol research (`hardware-bridge/DEXCOM_BLE_PROTOCOL_RESEARCH.md`)
+found no independent BLE central connection exists for it. Real-time monitoring instead
+uses an ordinary Bluetooth-SIG-standard glucometer (`hardware-bridge/`'s Tier 2); Stelo
+itself is supported only as delayed/historical data via Apple Health
+(`stelo-healthkit-sync/`) — see that component's own README for why.
 
 ## Components
 
@@ -25,6 +29,10 @@ either.
   exact same `mobile-bridge` `/telemetry/frame` endpoint and schema the simulator uses, so
   it's a drop-in real-hardware replacement for the simulator — no software changes needed
   elsewhere. See its own README for current build status.
+- `stelo-healthkit-sync/` — a small iOS companion app that reads Stelo's glucose samples
+  from Apple HealthKit and forwards them to `cloud-backend`'s `POST /readings/device`,
+  tagged `source="stelo_healthkit_delayed"`. Real-time alerting is out of scope for this
+  path (Dexcom syncs glucose to HealthKit on a fixed ~3h delay) — see its own README.
 
 ## Quick start
 

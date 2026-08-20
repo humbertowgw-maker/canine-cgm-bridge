@@ -1,0 +1,52 @@
+name: SteloHealthKitSync
+options:
+  bundleIdPrefix: com.humbertowgw
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: 9RYL8ZRC3U
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: 5.0
+targets:
+  SteloHealthKitSync:
+    type: application
+    platform: iOS
+    sources:
+      - path: SteloHealthKitSync
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.humbertowgw.stelohealthkitsync
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        CODE_SIGN_ENTITLEMENTS: SteloHealthKitSync/SteloHealthKitSync.entitlements
+    info:
+      path: SteloHealthKitSync/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSHealthShareUsageDescription: "Stelo HealthKit Sync reads your Stelo-synced blood glucose samples from Health so it can forward them to your Aegis dashboard as delayed/historical readings."
+        NSHealthUpdateUsageDescription: "Debug builds can write synthetic blood glucose samples to Health for end-to-end testing of the sync pipeline."
+  SteloHealthKitSyncTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SteloHealthKitSyncTests
+    dependencies:
+      - target: SteloHealthKitSync
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_ENTITLEMENTS: SteloHealthKitSync/SteloHealthKitSync.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.humbertowgw.stelohealthkitsync.tests
+        INFOPLIST_KEY_NSHealthShareUsageDescription: "Test host reads synthetic blood glucose samples for end-to-end sync testing."
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Test host writes synthetic blood glucose samples for end-to-end sync testing."
+schemes:
+  SteloHealthKitSync:
+    build:
+      targets:
+        SteloHealthKitSync: all
+    test:
+      targets:
+        - SteloHealthKitSyncTests
+    run:
+      config: Debug
