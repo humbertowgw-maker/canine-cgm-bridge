@@ -1,0 +1,36 @@
+name: Aegis
+options:
+  bundleIdPrefix: com.humbertowgw
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: 9RYL8ZRC3U
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: 5.0
+targets:
+  Aegis:
+    type: application
+    platform: iOS
+    sources:
+      - path: Aegis
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.humbertowgw.aegis
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        CODE_SIGN_ENTITLEMENTS: Aegis/Aegis.entitlements
+    info:
+      path: Aegis/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSHealthShareUsageDescription: "Aegis reads your Stelo-synced blood glucose samples from Health so it can log them to your dog's trend chart as delayed/historical readings."
+        NSHealthUpdateUsageDescription: "Debug builds can write synthetic blood glucose samples to Health for end-to-end testing of the sync pipeline."
+schemes:
+  Aegis:
+    build:
+      targets:
+        Aegis: all
+    run:
+      config: Debug
