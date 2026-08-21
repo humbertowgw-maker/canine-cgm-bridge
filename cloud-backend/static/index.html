@@ -519,6 +519,10 @@
   // This is a personal/trusted-device dashboard, not multi-tenant, so persisting
   // the key in localStorage once is the right tradeoff over re-entering it per visit.
   const API_KEY_STORAGE = "cgm_api_key";
+  // A ?key= URL param (used by the public demo link) pre-fills and persists
+  // the key so a visitor doesn't have to copy/paste it in by hand.
+  const urlKey = new URLSearchParams(window.location.search).get("key");
+  if (urlKey) localStorage.setItem(API_KEY_STORAGE, urlKey);
   apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE) || "";
   apiKeyInput.addEventListener("change", () => {
     localStorage.setItem(API_KEY_STORAGE, apiKeyInput.value);

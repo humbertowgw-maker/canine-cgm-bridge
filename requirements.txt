@@ -1,0 +1,9 @@
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+sqlalchemy==2.0.51
+pydantic==2.13.4
+numpy==2.5.1
+httpx==0.28.1
+pyyaml==6.0.3
+python-multipart==0.0.20
+python-dateutil==2.9.0.post0

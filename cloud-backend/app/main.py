@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.database import init_db
+from app.database import SessionLocal, init_db
 from app.deps import require_api_key
 from app.routers import (
     alerts,
@@ -16,6 +16,7 @@ from app.routers import (
     photo_capture,
     readings,
 )
+from app.seed_demo import seed_demo_data
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -25,6 +26,11 @@ STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    db = SessionLocal()
+    try:
+        seed_demo_data(db)
+    finally:
+        db.close()
     yield
 
 
