@@ -23,7 +23,7 @@ struct SettingsView: View {
                 }
 
                 Section("About") {
-                    Text("Defaults to the public Aegis demo backend — a synthetic dog seeded fresh on every deploy, safe to experiment with. Point this at a private instance to track a real dog.")
+                    Text("Defaults to the public Aegis & Fur demo backend — a synthetic dog seeded fresh on every deploy, safe to experiment with. Point this at a private instance to track a real dog.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

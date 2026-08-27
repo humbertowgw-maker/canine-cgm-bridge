@@ -48,7 +48,7 @@ struct ContentView: View {
                 }
 
                 Section("About") {
-                    Text("Reads Stelo glucose samples that Apple Health already has (synced by the Stelo app with a fixed ~3h delay) and forwards them to your Aegis dashboard as historical readings. Not for real-time alerting — see README.")
+                    Text("Reads Stelo glucose samples that Apple Health already has (synced by the Stelo app with a fixed ~3h delay) and forwards them to your Aegis & Fur dashboard as historical readings. Not for real-time alerting — see README.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

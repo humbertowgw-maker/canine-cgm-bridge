@@ -1,8 +1,9 @@
 import SwiftUI
 
 struct LogView: View {
-    private let dogId = AppConfig.dogId
-    private let dogName = "your dog"
+    @EnvironmentObject private var petStore: PetStore
+    private var dogId: Int { petStore.selectedPetID }
+    private var dogName: String { petStore.selectedPet?.name ?? "your dog" }
 
     @State private var glucoseText = ""
     @State private var glucoseNote = ""
@@ -124,4 +125,5 @@ struct LogView: View {
 
 #Preview {
     LogView()
+        .environmentObject(PetStore())
 }

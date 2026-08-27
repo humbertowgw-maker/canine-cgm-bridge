@@ -16,6 +16,15 @@ enum APIClientError: LocalizedError {
 /// the web dashboard (cloud-backend/static/index.html) uses. See
 /// app/routers/*.py for the source of truth on every shape used here.
 enum APIClient {
+    private struct DogCreateRequest: Encodable {
+        let name: String
+        let breed: String
+        let weight_kg: Double
+        let target_range_low_mg_dl: Double?
+        let target_range_high_mg_dl: Double?
+        let feeding_schedule: [String]
+    }
+
     private struct ManualReadingRequest: Encodable {
         let dog_id: Int
         let timestamp: String
@@ -74,6 +83,25 @@ enum APIClient {
 
     static func fetchDogs() async throws -> [Dog] {
         try await send(try request("/dogs"), as: [Dog].self)
+    }
+
+    static func createDog(
+        name: String,
+        breed: String,
+        weightKg: Double,
+        targetLow: Double? = nil,
+        targetHigh: Double? = nil,
+        feedingSchedule: [String] = []
+    ) async throws -> Dog {
+        let body = DogCreateRequest(
+            name: name,
+            breed: breed,
+            weight_kg: weightKg,
+            target_range_low_mg_dl: targetLow,
+            target_range_high_mg_dl: targetHigh,
+            feeding_schedule: feedingSchedule
+        )
+        return try await send(try request("/dogs", method: "POST", body: body), as: Dog.self)
     }
 
     static func fetchReadings(dogId: Int, limit: Int = 288) async throws -> [Reading] {

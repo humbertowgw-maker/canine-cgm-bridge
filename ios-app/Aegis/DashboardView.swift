@@ -2,6 +2,7 @@ import SwiftUI
 import Charts
 
 struct DashboardView: View {
+    @EnvironmentObject private var petStore: PetStore
     @State private var dog: Dog?
     @State private var readings: [Reading] = []
     @State private var velocity: Velocity?
@@ -10,7 +11,7 @@ struct DashboardView: View {
     @State private var errorMessage: String?
     @State private var refreshTask: Task<Void, Never>?
 
-    private let dogId = AppConfig.dogId
+    private var dogId: Int { petStore.selectedPetID }
 
     var body: some View {
         NavigationStack {
@@ -39,7 +40,7 @@ struct DashboardView: View {
             }
             .navigationTitle(dog.map { "\($0.name)'s glucose" } ?? "Glucose trend")
             .refreshable { await load() }
-            .task { await load() }
+            .task(id: dogId) { await load() }
         }
     }
 
@@ -142,4 +143,5 @@ struct DashboardView: View {
 
 #Preview {
     DashboardView()
+        .environmentObject(PetStore())
 }

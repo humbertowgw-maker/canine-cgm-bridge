@@ -18,6 +18,8 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Aegis &amp; Fur uses Bluetooth to find and read compatible glucose meters after you choose to connect one.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Aegis reads your Stelo-synced blood glucose samples from Health so it can log them to your dog's trend chart as delayed/historical readings.</string>
 	<key>NSHealthUpdateUsageDescription</key>

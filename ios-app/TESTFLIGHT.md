@@ -1,8 +1,10 @@
-# TestFlight submission — Aegis iOS
+# TestFlight submission — Aegis & Fur iOS
 
 Same process that got PhysicalKey and Screenshot Analyzer submitted (see
 `physicalkey-core/mobile/ios/TESTFLIGHT.md` for the fully detailed version). This is the
-Aegis-specific quick reference.
+Aegis-specific quick reference. (Brand is now **Aegis & Fur** — rebranded from plain
+"Aegis", which conflicts with an existing business; the Xcode target/scheme stays `Aegis`
+so all build commands below are unchanged.)
 
 **Status as of 2026-08-21**: app builds and runs correctly (verified in the iOS Simulator
 against the live public demo backend — real chart, real data, not a mockup). App Store
@@ -13,7 +15,8 @@ Connect record has **not** been created yet — that's the one step that needs y
 1. Go to [appstoreconnect.apple.com](https://appstoreconnect.apple.com), sign in.
 2. **My Apps → "+" → New App.**
    - **Platform:** iOS
-   - **Name:** Aegis (check uniqueness first — if taken, "Aegis CGM" or similar)
+   - **Name:** Aegis & Fur (rebranded — plain "Aegis" is taken by an existing business; if
+     "Aegis & Fur" exceeds the 30-char limit or is taken, use "Aegis & Fur CGM")
    - **Bundle ID:** `com.humbertowgw.aegis` — if not in the dropdown, register it first at
      **Apple Developer → Certificates, Identifiers & Profiles → Identifiers → "+"**
    - **SKU:** e.g. `aegis-ios-001`
@@ -26,7 +29,7 @@ Connect record has **not** been created yet — that's the one step that needs y
    ```
    then export + upload the same way PhysicalKey's did.
 4. Before external testers: needs a **Privacy Policy URL** (requests HealthKit access) — I
-   can draft the text, you pick where to host it (e.g. `aegis.whitegwireless.com/privacy`).
+   can draft the text, you pick where to host it (e.g. `aegisandfur.whitegwireless.com/privacy`).
 
 ## What's in the app
 

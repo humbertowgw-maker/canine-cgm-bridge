@@ -27,6 +27,7 @@ targets:
         UILaunchScreen: {}
         NSHealthShareUsageDescription: "Aegis reads your Stelo-synced blood glucose samples from Health so it can log them to your dog's trend chart as delayed/historical readings."
         NSHealthUpdateUsageDescription: "Debug builds can write synthetic blood glucose samples to Health for end-to-end testing of the sync pipeline."
+        NSBluetoothAlwaysUsageDescription: "Aegis & Fur uses Bluetooth to find and read compatible glucose meters after you choose to connect one."
 schemes:
   Aegis:
     build:

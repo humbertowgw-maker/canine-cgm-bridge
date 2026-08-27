@@ -14,12 +14,14 @@
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleDisplayName</key>
+	<string>Aegis &amp; Fur Sync</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Stelo HealthKit Sync reads your Stelo-synced blood glucose samples from Health so it can forward them to your Aegis dashboard as delayed/historical readings.</string>
+	<string>Stelo HealthKit Sync reads your Stelo-synced blood glucose samples from Health so it can forward them to your Aegis &amp; Fur dashboard as delayed/historical readings.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Debug builds can write synthetic blood glucose samples to Health for end-to-end testing of the sync pipeline.</string>
 	<key>UILaunchScreen</key>
