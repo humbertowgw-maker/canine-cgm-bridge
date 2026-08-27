@@ -315,6 +315,29 @@
   </section>
 
   <section class="panel">
+    <p class="panel-title">Understanding canine diabetes</p>
+    <p class="empty-note" style="margin:0 0 14px;">A plain-language starting point — not a substitute for what your vet told you about your own dog. Sources: Merck Veterinary Manual, ACVIM (American College of Veterinary Internal Medicine) consensus statement on canine diabetes, ASPCA Animal Poison Control.</p>
+
+    <div style="display:grid; gap:14px;">
+      <div>
+        <strong>What's actually happening.</strong> Most diabetic dogs have <em>insulin-deficiency</em> diabetes — the pancreas has stopped making enough insulin, the hormone that lets glucose move out of the blood and into cells for energy. This is different from the more common human pattern (insulin resistance); it's why dogs almost always need injected insulin rather than pills. Without it, glucose builds up in the blood while the body's cells are effectively starving.
+      </div>
+      <div>
+        <strong>Why the daily routine matters so much.</strong> Insulin, food, and exercise all move glucose in the same direction — down. The whole point of a fixed daily routine (same food, same amount, same time, insulin timed the same way every day) is to make that drop predictable. Skip or delay a meal after an insulin dose has already been given, and glucose can fall dangerously low with nothing to counteract it.
+      </div>
+      <div>
+        <strong>Low blood sugar (hypoglycemia) — the more urgent of the two.</strong> Watch for weakness, wobbliness or stumbling, unusual disorientation, tremors, or (in a severe episode) seizure or collapse. If you see these signs in a dog on insulin: rub a small amount of Karo syrup or honey directly on the gums and call your vet or emergency vet immediately — this is not a "wait and see" situation.
+      </div>
+      <div>
+        <strong>High blood sugar (hyperglycemia).</strong> Usually slower and less immediately dangerous than a hypo, but watch for increased thirst and urination, lethargy, or reduced appetite over hours to days. Vomiting, noticeably faster/deeper breathing, or a sweet or acetone-like breath odor can signal diabetic ketoacidosis (DKA) — a real emergency, not something to monitor at home.
+      </div>
+      <div style="font-size:12.5px; color:var(--text-muted);">
+        This panel explains the disease in general. It doesn't know your dog's actual history, other conditions, or vet's plan — always defer to your own vet for anything specific to your dog.
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
     <p class="panel-title">Log a glucose reading</p>
     <p class="empty-note" style="margin:0 0 12px;">No sensor needed — enter a glucometer reading directly. Works exactly like a sensor reading everywhere else (trend chart, hypo-drop alerts).</p>
     <form id="manual-reading-form" class="cal-form">
@@ -342,7 +365,7 @@
       <button type="submit" id="photo-extract-btn">Extract reading</button>
       <span id="photo-extract-status"></span>
     </form>
-    <div id="photo-preview" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+    <div id="photo-preview" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
       <p id="photo-warning" class="empty-note" style="display:none; color:var(--status-warning, #c9862b);"></p>
       <div class="cal-form" style="align-items:flex-end;">
         <label>Glucose (mg/dL) — review this
@@ -380,6 +403,35 @@
       </table>
       <p class="empty-note" id="feedings-empty" style="display:none;">No feedings logged yet.</p>
     </details>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title">Food &amp; diet guidance <span style="font-weight:400; color:var(--text-muted); font-size:13px;">— reference only</span></p>
+    <p class="empty-note" style="margin:0 0 14px;">General veterinary nutrition principles for diabetic dogs — never a specific diet plan for your dog. Any diet change should go through your vet, especially since food and insulin interact directly. Sources: WSAVA Global Nutrition Committee guidelines, Merck Veterinary Manual, Cornell Riney Canine Health Center, ASPCA Animal Poison Control.</p>
+
+    <div style="display:grid; gap:14px;">
+      <div>
+        <strong>The one principle that matters most: consistency.</strong> Diabetic dogs are typically fed the exact same food, the exact same amount, at the exact same times every day, timed around insulin — because insulin dosing is built around a predictable glucose rise from that meal. A one-off "treat" meal that's larger, richer, or at a different time isn't a small thing here; it can throw off the whole day's curve.
+      </div>
+      <div>
+        <strong>What the diet itself usually looks like.</strong> Vets commonly favor moderate-to-high fiber, complex (not simple/sugary) carbohydrates, and controlled fat — fiber and complex carbs slow how fast glucose enters the bloodstream after a meal, and fat is kept in check partly because diabetic dogs run a higher risk of pancreatitis.
+      </div>
+      <div>
+        <strong>Real therapeutic diets vets commonly prescribe</strong> (get the specific one from your vet, not from here): Hill's Prescription Diet w/d, Royal Canin Veterinary Diet Glycobalance, and Purina Pro Plan Veterinary Diets DM Dietetic Management are the three most widely used canine diabetic therapeutic lines in the US. They're formulated specifically around the fiber/carb/fat profile above.
+      </div>
+      <div>
+        <strong>Homemade diets: possible, but not a DIY project.</strong> A homemade diabetic diet can work well, but it has to be formulated by a board-certified veterinary nutritionist (look for "DACVN") — not assembled from a recipe online. An unbalanced homemade diet is a real, common way a dog's diabetes control quietly falls apart. If you want to go this route, ask your vet for a referral.
+      </div>
+      <div>
+        <strong>Treats.</strong> Keep them small, low-glycemic, and worked into the same daily routine rather than given spontaneously — plain green beans and small amounts of cooked lean protein (no seasoning, no sauce) are commonly mentioned as lower-impact options, but confirm any regular treat with your vet since it effectively becomes part of the diet.
+      </div>
+      <div>
+        <strong>Genuinely dangerous foods — for any dog, not just diabetic ones.</strong> Xylitol (found in many "sugar-free" products) causes a severe, rapid insulin surge and blood-sugar crash — a serious risk to layer onto a dog whose glucose is already being managed. Also avoid grapes/raisins, onions/garlic/chives/leeks, chocolate, macadamia nuts, and alcohol. If you suspect any of these were eaten, call your vet or an animal poison control line immediately rather than waiting for symptoms.
+      </div>
+      <div style="font-size:12.5px; color:var(--text-muted);">
+        This panel names real products and general principles; it doesn't calculate portions, calories, or a diet plan for your dog. That number always has to come from your vet, based on your dog's weight, condition, and actual insulin plan.
+      </div>
+    </div>
   </section>
 
   <section class="panel">
@@ -463,11 +515,11 @@
       <p id="dose-current-display" class="empty-note" style="margin:8px 0 0;"></p>
     </div>
 
-    <div style="border-top:1px solid var(--line); padding-top:14px;">
+    <div style="border-top:1px solid var(--border); padding-top:14px;">
       <button type="button" id="dose-check-btn">Check dose guidance</button>
       <span id="dose-check-status" style="font-size:12.5px; color:var(--ink-faint,#7c8994); margin-left:8px;"></span>
 
-      <div id="dose-ack-gate" style="display:none; margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:8px;">
+      <div id="dose-ack-gate" style="display:none; margin-top:14px; padding:14px; border:1px solid var(--border); border-radius:8px;">
         <p style="font-size:13px; font-weight:600; margin:0 0 10px;">Before this signal is shown, confirm you understand:</p>
         <div style="margin-bottom:12px;">
           <p style="font-size:13px; margin:0 0 6px;">1. What does this panel do?</p>
@@ -489,7 +541,7 @@
         </div>
         <p id="dose-formula-citation" style="font-size:13.5px; color:var(--ink-muted,#4e5d68); margin:0 0 8px;"></p>
         <p id="dose-nadir-detail" style="font-size:13px; color:var(--ink-faint,#7c8994); margin:0 0 10px;"></p>
-        <p style="font-size:12.5px; color:var(--ink-faint,#7c8994); border-top:1px dashed var(--line); padding-top:8px; margin:0 0 8px;"><strong>Somogyi note:</strong> <span id="dose-somogyi-text"></span></p>
+        <p style="font-size:12.5px; color:var(--ink-faint,#7c8994); border-top:1px dashed var(--border); padding-top:8px; margin:0 0 8px;"><strong>Somogyi note:</strong> <span id="dose-somogyi-text"></span></p>
         <p style="font-size:11.5px; color:var(--ink-faint,#7c8994); font-style:italic; margin:0;" id="dose-disclaimer-text"></p>
         <button type="button" id="dose-refresh-btn" style="margin-top:10px;">Refresh guidance</button>
       </div>
