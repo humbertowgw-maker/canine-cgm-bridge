@@ -25,3 +25,12 @@ OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_VISION_MODEL = os.environ.get("OLLAMA_VISION_MODEL", "qwen2.5vl:7b")
 
 PRESETS = load_presets()
+
+# White-label billing scaffolding — a separate per-user account layer, not
+# wired into the CGM_SHARED_SECRET gate above (that stays as the single
+# owner's auth for dog/reading data). Not live: use Stripe *test* mode keys
+# until this is actually launched as a paid product.
+JWT_SECRET = os.environ.get("JWT_SECRET")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_PRICE_ID_PRO = os.environ.get("STRIPE_PRICE_ID_PRO")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")

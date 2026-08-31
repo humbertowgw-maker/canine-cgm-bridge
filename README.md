@@ -66,9 +66,25 @@ target range, and alert history instead of reading logs.
 ## Deliberately out of scope
 
 No insulin dosing/bolus calculators, no human carb logging, no human 70/180 mg/dL alert
-thresholds, no human UI screens, no auth/multi-tenancy, no cloud deployment/TLS, and no
-actual Kotlin/Android or Node/Mongo code. Pure Python for the software side, architecturally
-inspired only. Real alert delivery is a browser-notification stub, not push/webhook/SMS.
+thresholds, no human UI screens, no cloud deployment/TLS, and no actual Kotlin/Android or
+Node/Mongo code. Pure Python for the software side, architecturally inspired only. Real
+alert delivery is a browser-notification stub, not push/webhook/SMS.
+
+## Billing (white-label scaffolding, not live)
+
+`cloud-backend/app/routers/user_accounts.py` and `billing.py` add a per-user account +
+Stripe subscription layer (`/auth/signup`, `/auth/login`, `/auth/me`, `/billing/checkout`,
+`/billing/webhook`, `/billing/status`) — separate from the `CGM_SHARED_SECRET` gate that
+still covers every dogs/readings/calibration/alerts route. Not wired into any of that data,
+and not live: the Stripe account behind it (Aegis Pro, $14.99/mo) has only ever been used
+with test-mode keys. To exercise it locally:
+
+```bash
+export JWT_SECRET=local-dev-secret
+export STRIPE_SECRET_KEY=sk_test_...
+export STRIPE_PRICE_ID_PRO=price_...
+export STRIPE_WEBHOOK_SECRET=whsec_...   # only needed to verify real webhook calls
+```
 
 ## Running tests
 

@@ -256,3 +256,38 @@ class VelocityOut(BaseModel):
     message: str | None = Field(
         default=None, description="Set when there isn't enough history to compute velocity"
     )
+
+
+# ---- Billing (white-label scaffolding) ----
+
+
+class SignupRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=8)
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenOut(BaseModel):
+    token: str
+
+
+class MeOut(BaseModel):
+    id: int
+    email: str
+    subscription_status: str
+
+
+class CheckoutRequest(BaseModel):
+    return_url: str
+
+
+class CheckoutOut(BaseModel):
+    url: str
+
+
+class SubscriptionStatusOut(BaseModel):
+    status: str
